@@ -1,0 +1,17 @@
+# Data
+data/
+*.sqlite
+*.db
+*.duckdb
+
+# Python
+__pycache__/
+*.pyc
+.venv/
+.env
+
+# Outputs
+outputs/
+logs/
+checkpoints/
+results/
