@@ -1,0 +1,31 @@
+{
+  "total": 50,
+  "ex_count": 13,
+  "vsr_count": 43,
+  "gold_success_count": 50,
+  "EX": 0.26,
+  "VSR": 0.86,
+  "difficulty_breakdown": {
+    "simple": {
+      "sample_count": 15,
+      "vsr_count": 14,
+      "ex_count": 9,
+      "VSR": 0.9333333333333333,
+      "EX": 0.6
+    },
+    "moderate": {
+      "sample_count": 16,
+      "vsr_count": 16,
+      "ex_count": 4,
+      "VSR": 1.0,
+      "EX": 0.25
+    },
+    "challenging": {
+      "sample_count": 19,
+      "vsr_count": 13,
+      "ex_count": 0,
+      "VSR": 0.6842105263157895,
+      "EX": 0.0
+    }
+  }
+}

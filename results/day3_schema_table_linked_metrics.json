@@ -1,0 +1,93 @@
+{
+  "total": 50,
+  "ex_count": 13,
+  "vsr_count": 42,
+  "gold_success_count": 50,
+  "EX": 0.26,
+  "VSR": 0.84,
+  "difficulty_breakdown": {
+    "simple": {
+      "sample_count": 15,
+      "vsr_count": 12,
+      "ex_count": 6,
+      "VSR": 0.8,
+      "EX": 0.4
+    },
+    "moderate": {
+      "sample_count": 16,
+      "vsr_count": 16,
+      "ex_count": 7,
+      "VSR": 1.0,
+      "EX": 0.4375
+    },
+    "challenging": {
+      "sample_count": 19,
+      "vsr_count": 14,
+      "ex_count": 0,
+      "VSR": 0.7368421052631579,
+      "EX": 0.0
+    }
+  },
+  "comparison_with_day2": {
+    "naive_full_schema": {
+      "total": 50,
+      "VSR": 0.86,
+      "EX": 0.26,
+      "difficulty_breakdown": {
+        "simple": {
+          "sample_count": 15,
+          "vsr_count": 14,
+          "ex_count": 9,
+          "VSR": 0.9333333333333333,
+          "EX": 0.6
+        },
+        "moderate": {
+          "sample_count": 16,
+          "vsr_count": 16,
+          "ex_count": 4,
+          "VSR": 1.0,
+          "EX": 0.25
+        },
+        "challenging": {
+          "sample_count": 19,
+          "vsr_count": 13,
+          "ex_count": 0,
+          "VSR": 0.6842105263157895,
+          "EX": 0.0
+        }
+      }
+    },
+    "schema_table_linked": {
+      "total": 50,
+      "VSR": 0.84,
+      "EX": 0.26,
+      "difficulty_breakdown": {
+        "simple": {
+          "sample_count": 15,
+          "vsr_count": 12,
+          "ex_count": 6,
+          "VSR": 0.8,
+          "EX": 0.4
+        },
+        "moderate": {
+          "sample_count": 16,
+          "vsr_count": 16,
+          "ex_count": 7,
+          "VSR": 1.0,
+          "EX": 0.4375
+        },
+        "challenging": {
+          "sample_count": 19,
+          "vsr_count": 14,
+          "ex_count": 0,
+          "VSR": 0.7368421052631579,
+          "EX": 0.0
+        }
+      }
+    },
+    "delta": {
+      "VSR": -0.020000000000000018,
+      "EX": 0.0
+    }
+  }
+}

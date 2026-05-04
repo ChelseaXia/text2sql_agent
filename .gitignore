@@ -9,9 +9,11 @@ __pycache__/
 *.pyc
 .venv/
 .env
+.DS_Store
 
 # Outputs
 outputs/
 logs/
 checkpoints/
-results/
+# results/
+results/*.jsonl
