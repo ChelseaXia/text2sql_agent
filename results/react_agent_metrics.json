@@ -1,0 +1,36 @@
+{
+  "total": 1,
+  "ex_count": 0,
+  "vsr_count": 0,
+  "gold_success_count": 1,
+  "EX": 0.0,
+  "VSR": 0.0,
+  "difficulty_breakdown": {
+    "simple": {
+      "sample_count": 0,
+      "vsr_count": 0,
+      "ex_count": 0,
+      "VSR": 0.0,
+      "EX": 0.0
+    },
+    "moderate": {
+      "sample_count": 0,
+      "vsr_count": 0,
+      "ex_count": 0,
+      "VSR": 0.0,
+      "EX": 0.0
+    },
+    "challenging": {
+      "sample_count": 1,
+      "vsr_count": 0,
+      "ex_count": 0,
+      "VSR": 0.0,
+      "EX": 0.0
+    }
+  },
+  "finish_count": 0,
+  "no_finish_count": 1,
+  "finish_rejected_count": 0,
+  "executed_but_not_finished_count": 0,
+  "avg_execute_call_count": 0.0
+}

@@ -1,7 +1,22 @@
-# Day7 Agent Trace Examples
+# Agent Trace Examples
 
-Main ablation results are on BIRD dev california_schools 50-sample subset.
+Tool-calling traces on the local BIRD dev subset.
 
-Day7 Agent is a tool-calling controller built on top of the existing schema linking and execution repair pipeline.
+## Sample 0
 
-Run `python3 src/text2sql_agent.py --db-id california_schools --limit 50` to generate fresh traces and overwrite this file with concrete examples.
+- Difficulty: `challenging`
+- EX: `False`
+- Final execution success: `False`
+- Final SQL source: `no_finish`
+- Question: For the school with the highest free meal rate in Alameda County, what are its characteristics including whether it's a charter school, what grades it serves, its SAT performance level, and how much its free meal rate deviates from the county average?
+
+Final SQL:
+```sql
+-- no final sql --
+```
+
+Trace summary:
+- Step 1: `retrieve_schema`
+- Step 2: `timeout`
+- Step 3: `no_finish`
+

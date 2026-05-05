@@ -19,6 +19,25 @@ def compute_metrics(records):
     pred_success_count = sum(1 for row in rows if row.get("pred_success"))
     ex_count = sum(1 for row in rows if row.get("ex"))
     gold_success_count = sum(1 for row in rows if row.get("gold_success"))
+    
+    finish_count = 0
+    no_finish_count = 0
+    finish_rejected_count = 0
+    executed_but_not_finished_count = 0
+    
+    for result in records:
+        if result.get("final_sql_source") == "finish_tool":
+            finish_count += 1
+        elif result.get("final_sql_source") == "no_finish":
+            no_finish_count += 1
+            if result.get("has_successful_execute"):
+                executed_but_not_finished_count += 1
+        
+        trace = result.get("trace", [])
+        for step in trace:
+            if step.get("finish_rejected"):
+                finish_rejected_count += 1
+    
     difficulty_breakdown = {}
 
     for difficulty in ("simple", "moderate", "challenging"):
@@ -42,6 +61,10 @@ def compute_metrics(records):
         "EX": ex_count / total if total else 0.0,
         "VSR": pred_success_count / total if total else 0.0,
         "difficulty_breakdown": difficulty_breakdown,
+        "finish_count": finish_count,
+        "no_finish_count": no_finish_count,
+        "finish_rejected_count": finish_rejected_count,
+        "executed_but_not_finished_count": executed_but_not_finished_count,
     }
 
 

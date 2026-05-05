@@ -3,10 +3,11 @@
 from pathlib import Path
 
 
-PROJECT_ROOT = Path(__file__).resolve().parents[1]
+PROJECT_ROOT = Path(__file__).resolve().parents[2]
 SRC_DIR = PROJECT_ROOT / "src"
 DATA_DIR = PROJECT_ROOT / "data"
 RESULTS_DIR = PROJECT_ROOT / "results"
+DOCS_DIR = PROJECT_ROOT / "docs"
 
 # BIRD dev paths. We support both a raw extracted package layout and the
 # Hugging Face `save_to_disk` layout already downloaded into `data/bird_dev`.

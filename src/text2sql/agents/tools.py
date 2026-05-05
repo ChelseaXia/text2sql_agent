@@ -1,5 +1,6 @@
 """Tool implementations for the ReAct-style Text2SQL agent."""
 
+import re
 import sqlite3
 from dataclasses import dataclass
 
@@ -8,6 +9,18 @@ from text2sql.schema.items import build_schema_items, quote_identifier
 
 DEFAULT_ROWS_PREVIEW_LIMIT = 5
 DEFAULT_VALUE_SEARCH_LIMIT = 20
+BLOCKED_SQL_KEYWORDS = {
+    "DROP",
+    "DELETE",
+    "UPDATE",
+    "INSERT",
+    "ALTER",
+    "CREATE",
+    "REPLACE",
+    "ATTACH",
+    "DETACH",
+    "VACUUM",
+}
 
 
 def rows_preview(rows, limit=DEFAULT_ROWS_PREVIEW_LIMIT):
@@ -20,6 +33,50 @@ def selected_tables_from_items(items):
         if item["table"] not in tables:
             tables.append(item["table"])
     return tables
+
+
+def _strip_leading_sql_comments(sql):
+    text = sql or ""
+    while True:
+        stripped = text.lstrip()
+        if stripped.startswith("--"):
+            newline_index = stripped.find("\n")
+            if newline_index == -1:
+                return ""
+            text = stripped[newline_index + 1 :]
+            continue
+        if stripped.startswith("/*"):
+            end_index = stripped.find("*/")
+            if end_index == -1:
+                return ""
+            text = stripped[end_index + 2 :]
+            continue
+        return stripped
+
+
+def check_sql_safety(sql):
+    text = (sql or "").strip()
+    if not text:
+        return False, "SQL is empty."
+
+    normalized = _strip_leading_sql_comments(text)
+    if not normalized:
+        return False, "SQL is empty after removing leading comments."
+    upper_text = normalized.upper()
+    if not (upper_text.startswith("SELECT") or upper_text.startswith("WITH")):
+        return False, "Only SELECT or WITH queries are allowed."
+
+    if ".load" in normalized.lower():
+        return False, "The .load command is not allowed."
+
+    if ";" in normalized.rstrip(";"):
+        return False, "Multiple SQL statements are not allowed."
+
+    for keyword in BLOCKED_SQL_KEYWORDS:
+        if re.search(rf"\b{keyword}\b", upper_text):
+            return False, f"Blocked SQL keyword detected: {keyword}."
+
+    return True, None
 
 
 @dataclass
@@ -138,14 +195,26 @@ class AgentTools:
             connection.close()
 
     def execute_sql(self, sql):
+        is_safe, block_reason = check_sql_safety(sql)
+        if not is_safe:
+            return {
+                "success": False,
+                "rows": [],
+                "row_count": 0,
+                "error": f"SQL safety check failed: {block_reason}",
+                "safety_blocked": True,
+                "block_reason": block_reason,
+            }
+
         result = run_sql(sql, self.context.sample["db_path"])
         return {
             "success": result["success"],
             "rows": rows_preview(result["rows"]),
             "row_count": len(result["rows"]),
             "error": result["error"],
+            "safety_blocked": False,
+            "block_reason": None,
         }
 
     def finish(self, sql):
         return {"final_sql": sql}
-
