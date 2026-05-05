@@ -53,3 +53,22 @@ def load_bird_dev(limit=None, db_id=None):
         if limit is not None and len(samples) >= limit:
             break
     return samples
+
+
+def load_bird_dev_by_sample_ids(sample_ids, db_id=None):
+    wanted_ids = list(sample_ids)
+    wanted_set = set(wanted_ids)
+    found = {}
+
+    for fallback_index, item in enumerate(_iter_raw_samples()):
+        if db_id is not None and item["db_id"] != db_id:
+            continue
+        sample = normalize_bird_sample(item, fallback_index)
+        if sample["sample_id"] in wanted_set:
+            found[sample["sample_id"]] = sample
+
+    missing = [sample_id for sample_id in wanted_ids if sample_id not in found]
+    if missing:
+        raise KeyError(f"Missing sample_ids in BIRD dev split: {missing[:10]}")
+
+    return [found[sample_id] for sample_id in wanted_ids]
