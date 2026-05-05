@@ -1,0 +1,21 @@
+{
+  "day5_5_metrics_path": "/Users/bytedance/text2sql_agent/results/day5_repair_from_day3_metrics.json",
+  "day5_5_predictions_path": "/Users/bytedance/text2sql_agent/results/day5_repair_from_day3_predictions.jsonl",
+  "react_agent_traces_path": "/Users/bytedance/text2sql_agent/results/react_agent_traces.jsonl",
+  "day5_5_sample_count": 50,
+  "react_agent_sample_count": 50,
+  "intersection_count": 50,
+  "only_in_day5_5": [],
+  "only_in_react_agent": [],
+  "day5_5_difficulty_distribution": {
+    "challenging": 19,
+    "moderate": 16,
+    "simple": 15
+  },
+  "react_agent_difficulty_distribution": {
+    "challenging": 19,
+    "moderate": 16,
+    "simple": 15
+  },
+  "is_apples_to_apples": true
+}
