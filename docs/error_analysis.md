@@ -22,7 +22,12 @@ The main result of the project is still:
 
 The controlled agent is discussed as a trace-based implementation close to Day5.5, and the autonomous ReAct agent is treated as a negative ablation.
 
-All saved numbers are reported under a single DeepSeek API setting: `deepseek-v4-flash`.
+Model-setting note:
+
+- core generation and repair pipelines use the repository DeepSeek client setting
+- in code, the core pipeline default is `deepseek-chat`
+- later agent experiments use DeepSeek function-calling settings
+- this project does not claim cross-model robustness
 
 ## Final Quantitative Snapshot
 
@@ -35,6 +40,12 @@ All saved numbers are reported under a single DeepSeek API setting: `deepseek-v4
 | Few-shot retrieval | 28% | 100% | negative ablation |
 | DDL schema serialization | 28% | 82% | negative ablation |
 | Autonomous ReAct agent | 12% | 88% | negative ablation |
+
+Pipeline headline:
+
+- EX improves from `26%` to `34%` to `36%`
+- this is a `38.5%` relative EX improvement from the naive baseline to the final strict-repair pipeline
+- VSR improves from `88%` to `100%` after strict repair
 
 ## 1. Schema Linking Helps Reduce Column Hallucination
 
@@ -96,7 +107,19 @@ This underperformed both the schema-linked promptfix setting and the strict repa
 
 The main failure pattern here is not just semantic error but also lower executability.
 
-## 5. Autonomous ReAct Tool Calling Was a Negative Ablation
+## 5. When Does Agency Hurt?
+
+The clearest agent comparison in the repo is:
+
+- Controlled execution-repair agent: `EX=32%`, `VSR=98%`
+- Autonomous ReAct agent: `EX=12%`, `VSR=88%`
+
+Finding:
+
+- free-form tool calling caused over-exploration and finalization instability
+- this supports using a controlled graph when task structure is known
+
+## 6. Autonomous ReAct Tool Calling Was a Negative Ablation
 
 The autonomous ReAct agent produced:
 
@@ -114,7 +137,7 @@ Observed failure themes from the saved traces:
 
 The result should not be interpreted as evidence that ReAct-style systems are generally bad. It only shows that this specific autonomous formulation underperformed on this project setup.
 
-## 6. Controlled Agent Is Close to Day5.5, but Not the Canonical Metric
+## 7. Controlled Agent Is Close to Day5.5, but Not the Canonical Metric
 
 The controlled execution-repair agent produced:
 
@@ -134,7 +157,7 @@ The right interpretation is:
 
 The saved Day5.5 run remains the canonical metric because `controlled_agent` is a rerun-based trace implementation; minor differences can arise from LLM sampling variance even at `temperature=0`.
 
-## 7. Why Controlled Agent Is Not the Canonical Metric
+## 8. Why Controlled Agent Is Not the Canonical Metric
 
 The controlled agent is intentionally documented as a trace implementation rather than the main quantitative result.
 
@@ -142,7 +165,7 @@ The controlled agent is intentionally documented as a trace implementation rathe
 - The remaining gap is consistent with rerun variance and initial SQL mismatch rather than a different intended algorithm.
 - Therefore the saved Day5.5 run remains the main quantitative result reported by the project.
 
-## 8. Challenging-Tier Queries Remain the Main Bottleneck
+## 9. Challenging-Tier Queries Remain the Main Bottleneck
 
 Even the strongest settings in the repository do not fully solve the hardest questions. The remaining gap appears to come less from syntax and more from semantic planning problems such as:
 
@@ -153,7 +176,7 @@ Even the strongest settings in the repository do not fully solve the hardest que
 
 This is why VSR can become very high while EX remains substantially lower.
 
-## 9. Overall Takeaway
+## 10. Overall Takeaway
 
 The project’s final evidence supports a simple conclusion:
 
