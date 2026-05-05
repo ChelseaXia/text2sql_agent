@@ -1,4 +1,4 @@
-from text2sql.pipelines.naive import *
+from text2sql.pipelines.fewshot import *
 
 
 if __name__ == "__main__":

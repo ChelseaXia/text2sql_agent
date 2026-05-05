@@ -1,0 +1,121 @@
+{
+  "total": 50,
+  "ex_count": 14,
+  "vsr_count": 50,
+  "gold_success_count": 50,
+  "EX": 0.28,
+  "VSR": 1.0,
+  "difficulty_breakdown": {
+    "simple": {
+      "sample_count": 15,
+      "vsr_count": 15,
+      "ex_count": 8,
+      "VSR": 1.0,
+      "EX": 0.5333333333333333
+    },
+    "moderate": {
+      "sample_count": 16,
+      "vsr_count": 16,
+      "ex_count": 6,
+      "VSR": 1.0,
+      "EX": 0.375
+    },
+    "challenging": {
+      "sample_count": 19,
+      "vsr_count": 19,
+      "ex_count": 0,
+      "VSR": 1.0,
+      "EX": 0.0
+    }
+  },
+  "comparison_with_day2_day3": {
+    "naive_full_schema": {
+      "total": 50,
+      "VSR": 0.86,
+      "EX": 0.26,
+      "difficulty_breakdown": {
+        "simple": {
+          "sample_count": 15,
+          "vsr_count": 14,
+          "ex_count": 9,
+          "VSR": 0.9333333333333333,
+          "EX": 0.6
+        },
+        "moderate": {
+          "sample_count": 16,
+          "vsr_count": 16,
+          "ex_count": 4,
+          "VSR": 1.0,
+          "EX": 0.25
+        },
+        "challenging": {
+          "sample_count": 19,
+          "vsr_count": 13,
+          "ex_count": 0,
+          "VSR": 0.6842105263157895,
+          "EX": 0.0
+        }
+      }
+    },
+    "schema_table_linked_promptfix": {
+      "total": 50,
+      "VSR": 0.88,
+      "EX": 0.34,
+      "difficulty_breakdown": {
+        "simple": {
+          "sample_count": 15,
+          "vsr_count": 14,
+          "ex_count": 9,
+          "VSR": 0.9333333333333333,
+          "EX": 0.6
+        },
+        "moderate": {
+          "sample_count": 16,
+          "vsr_count": 16,
+          "ex_count": 8,
+          "VSR": 1.0,
+          "EX": 0.5
+        },
+        "challenging": {
+          "sample_count": 19,
+          "vsr_count": 14,
+          "ex_count": 0,
+          "VSR": 0.7368421052631579,
+          "EX": 0.0
+        }
+      }
+    },
+    "schema_table_linked_promptfix_fewshot": {
+      "total": 50,
+      "VSR": 1.0,
+      "EX": 0.28,
+      "difficulty_breakdown": {
+        "simple": {
+          "sample_count": 15,
+          "vsr_count": 15,
+          "ex_count": 8,
+          "VSR": 1.0,
+          "EX": 0.5333333333333333
+        },
+        "moderate": {
+          "sample_count": 16,
+          "vsr_count": 16,
+          "ex_count": 6,
+          "VSR": 1.0,
+          "EX": 0.375
+        },
+        "challenging": {
+          "sample_count": 19,
+          "vsr_count": 19,
+          "ex_count": 0,
+          "VSR": 1.0,
+          "EX": 0.0
+        }
+      }
+    },
+    "delta_vs_day3_promptfix": {
+      "VSR": 0.12,
+      "EX": -0.06
+    }
+  }
+}

@@ -1,0 +1,975 @@
+sample_id,difficulty,day3_ex,day5_ex,day3_pred_success,day5_final_success,change_type,question,initial_pred_sql,final_pred_sql,initial_error,final_error
+0,challenging,False,False,True,True,same_wrong,"For the school with the highest free meal rate in Alameda County, what are its characteristics including whether it's a charter school, what grades it serves, its SAT performance level, and how much its free meal rate deviates from the county average?","SELECT 
+    s.Charter,
+    s.GSserved,
+    CASE 
+        WHEN (sa.AvgScrRead + sa.AvgScrMath + sa.AvgScrWrite) < 1200 THEN 'Below Average'
+        WHEN (sa.AvgScrRead + sa.AvgScrMath + sa.AvgScrWrite) BETWEEN 1200 AND 1500 THEN 'Average'
+        WHEN (sa.AvgScrRead + sa.AvgScrMath + sa.AvgScrWrite) > 1500 THEN 'Above Average'
+        ELSE 'No SAT Data'
+    END AS SAT_Performance_Level,
+    (f.`Free Meal Count (K-12)` / f.`Enrollment (K-12)`) - (
+        SELECT AVG(f2.`Free Meal Count (K-12)` / f2.`Enrollment (K-12)`)
+        FROM frpm f2
+        JOIN schools s2 ON f2.CDSCode = s2.CDSCode
+        WHERE s2.County = 'Alameda'
+    ) AS Deviation_From_County_Avg
+FROM frpm f
+JOIN schools s ON f.CDSCode = s.CDSCode
+LEFT JOIN satscores sa ON f.CDSCode = sa.cds
+WHERE s.County = 'Alameda'
+ORDER BY (f.`Free Meal Count (K-12)` / f.`Enrollment (K-12)`) DESC
+LIMIT 1;","SELECT 
+    s.Charter,
+    s.GSserved,
+    CASE 
+        WHEN (sa.AvgScrRead + sa.AvgScrMath + sa.AvgScrWrite) < 1200 THEN 'Below Average'
+        WHEN (sa.AvgScrRead + sa.AvgScrMath + sa.AvgScrWrite) BETWEEN 1200 AND 1500 THEN 'Average'
+        WHEN (sa.AvgScrRead + sa.AvgScrMath + sa.AvgScrWrite) > 1500 THEN 'Above Average'
+        ELSE 'No SAT Data'
+    END AS SAT_Performance_Level,
+    (f.`Free Meal Count (K-12)` / f.`Enrollment (K-12)`) - (
+        SELECT AVG(f2.`Free Meal Count (K-12)` / f2.`Enrollment (K-12)`)
+        FROM frpm f2
+        JOIN schools s2 ON f2.CDSCode = s2.CDSCode
+        WHERE s2.County = 'Alameda'
+    ) AS Deviation_From_County_Avg
+FROM frpm f
+JOIN schools s ON f.CDSCode = s.CDSCode
+LEFT JOIN satscores sa ON f.CDSCode = sa.cds
+WHERE s.County = 'Alameda'
+ORDER BY (f.`Free Meal Count (K-12)` / f.`Enrollment (K-12)`) DESC
+LIMIT 1;",,
+1,moderate,False,False,True,True,same_wrong,Please list the lowest three eligible free rates for students aged 5-17 in continuation schools.,"SELECT `Free Meal Count (Ages 5-17)` / `Enrollment (Ages 5-17)` AS eligible_free_rate
+FROM frpm
+WHERE `School Name` IN (
+    SELECT School FROM schools WHERE SOCType = 'Continuation High Schools'
+)
+ORDER BY eligible_free_rate ASC
+LIMIT 3;","SELECT `Free Meal Count (Ages 5-17)` / `Enrollment (Ages 5-17)` AS eligible_free_rate
+FROM frpm
+WHERE `School Name` IN (
+    SELECT School FROM schools WHERE SOCType = 'Continuation High Schools'
+)
+ORDER BY eligible_free_rate ASC
+LIMIT 3;",,
+2,challenging,False,False,True,True,same_wrong,"For charter schools in Fresno County Office of Education, provide their location details, enrollment information, FRPM eligibility rates, SAT performance metrics, and rankings. Include the year each school opened and whether it's currently active or closed, categorizing schools by their FRPM percentage levels.","SELECT 
+    s.School,
+    s.Street,
+    s.City,
+    s.Zip,
+    s.County,
+    s.OpenDate,
+    s.StatusType,
+    f.`Enrollment (K-12)`,
+    f.`Percent (%) Eligible FRPM (K-12)`,
+    CASE 
+        WHEN f.`Percent (%) Eligible FRPM (K-12)` > 0.75 THEN 'High FRPM'
+        WHEN f.`Percent (%) Eligible FRPM (K-12)` BETWEEN 0.50 AND 0.75 THEN 'Medium FRPM'
+        ELSE 'Low FRPM'
+    END AS FRPM_Category,
+    sc.NumTstTakr,
+    sc.AvgScrRead,
+    sc.AvgScrMath,
+    sc.AvgScrWrite,
+    sc.NumGE1500,
+    CAST(sc.NumGE1500 AS REAL) / NULLIF(sc.NumTstTakr, 0) AS Excellence_Rate
+FROM schools s
+JOIN frpm f ON s.CDSCode = f.CDSCode
+LEFT JOIN satscores sc ON s.CDSCode = sc.cds
+WHERE s.District = 'Fresno County Office of Education'
+  AND f.`Charter School (Y/N)` = 1;","SELECT 
+    s.School,
+    s.Street,
+    s.City,
+    s.Zip,
+    s.County,
+    s.OpenDate,
+    s.StatusType,
+    f.`Enrollment (K-12)`,
+    f.`Percent (%) Eligible FRPM (K-12)`,
+    CASE 
+        WHEN f.`Percent (%) Eligible FRPM (K-12)` > 0.75 THEN 'High FRPM'
+        WHEN f.`Percent (%) Eligible FRPM (K-12)` BETWEEN 0.50 AND 0.75 THEN 'Medium FRPM'
+        ELSE 'Low FRPM'
+    END AS FRPM_Category,
+    sc.NumTstTakr,
+    sc.AvgScrRead,
+    sc.AvgScrMath,
+    sc.AvgScrWrite,
+    sc.NumGE1500,
+    CAST(sc.NumGE1500 AS REAL) / NULLIF(sc.NumTstTakr, 0) AS Excellence_Rate
+FROM schools s
+JOIN frpm f ON s.CDSCode = f.CDSCode
+LEFT JOIN satscores sc ON s.CDSCode = sc.cds
+WHERE s.District = 'Fresno County Office of Education'
+  AND f.`Charter School (Y/N)` = 1;",,
+3,challenging,False,False,True,True,same_wrong,"For the non-charter school with more than 100 students that has the highest number of FRPM-eligible K-12 students, provide its name, location details, unabbreviated mailing address, website, enrollment statistics, SAT performance metrics, and determine whether it performs unexpectedly well or poorly given its FRPM rate.","SELECT s.School, s.City, s.State, s.MailStreet, s.Website, f.`Enrollment (K-12)`, f.`FRPM Count (K-12)`, f.`Percent (%) Eligible FRPM (K-12)`, sa.NumTstTakr, sa.NumGE1500, sa.AvgScrRead, sa.AvgScrMath, sa.AvgScrWrite, (sa.NumGE1500 * 1.0 / sa.NumTstTakr) AS ExcellenceRate, CASE WHEN f.`Percent (%) Eligible FRPM (K-12)` > 0.7 AND (sa.NumGE1500 * 1.0 / sa.NumTstTakr) > 0.2 THEN 'High-performing despite high FRPM' WHEN f.`Percent (%) Eligible FRPM (K-12)` < 0.3 AND (sa.NumGE1500 * 1.0 / sa.NumTstTakr) < 0.1 THEN 'Low-performing despite low FRPM' ELSE 'Neither' END AS PerformanceCategory FROM schools s JOIN frpm f ON s.CDSCode = f.CDSCode JOIN satscores sa ON s.CDSCode = sa.cds WHERE f.`Charter School (Y/N)` = 0 AND f.`Enrollment (K-12)` > 100 ORDER BY f.`FRPM Count (K-12)` DESC LIMIT 1;","SELECT s.School, s.City, s.State, s.MailStreet, s.Website, f.`Enrollment (K-12)`, f.`FRPM Count (K-12)`, f.`Percent (%) Eligible FRPM (K-12)`, sa.NumTstTakr, sa.NumGE1500, sa.AvgScrRead, sa.AvgScrMath, sa.AvgScrWrite, (sa.NumGE1500 * 1.0 / sa.NumTstTakr) AS ExcellenceRate, CASE WHEN f.`Percent (%) Eligible FRPM (K-12)` > 0.7 AND (sa.NumGE1500 * 1.0 / sa.NumTstTakr) > 0.2 THEN 'High-performing despite high FRPM' WHEN f.`Percent (%) Eligible FRPM (K-12)` < 0.3 AND (sa.NumGE1500 * 1.0 / sa.NumTstTakr) < 0.1 THEN 'Low-performing despite low FRPM' ELSE 'Neither' END AS PerformanceCategory FROM schools s JOIN frpm f ON s.CDSCode = f.CDSCode JOIN satscores sa ON s.CDSCode = sa.cds WHERE f.`Charter School (Y/N)` = 0 AND f.`Enrollment (K-12)` > 100 ORDER BY f.`FRPM Count (K-12)` DESC LIMIT 1;",,
+4,moderate,True,True,True,True,same_correct,Please list the phone numbers of the direct charter-funded schools that are opened after 2000/1/1.,"SELECT s.Phone
+FROM schools s
+JOIN frpm f ON s.CDSCode = f.CDSCode
+WHERE f.`Charter Funding Type` = 'Directly funded'
+  AND s.OpenDate > '2000-01-01';","SELECT s.Phone
+FROM schools s
+JOIN frpm f ON s.CDSCode = f.CDSCode
+WHERE f.`Charter Funding Type` = 'Directly funded'
+  AND s.OpenDate > '2000-01-01';",,
+5,challenging,False,False,False,True,same_wrong,"What are the details of fully virtual schools that have an average SAT Math score above 400, including their SAT performance rankings, enrollment, and poverty levels, ordered by their total SAT scores?","SELECT s.sname AS school_name, 
+       s.City, 
+       s.Zip, 
+       sa.AvgScrMath, 
+       sa.AvgScrRead, 
+       sa.AvgScrWrite, 
+       (sa.AvgScrRead + sa.AvgScrMath + sa.AvgScrWrite) AS total_sat_score,
+       sa.NumTstTakr, 
+       sa.NumGE1500, 
+       CAST(sa.NumGE1500 AS REAL) / sa.NumTstTakr AS excellence_rate,
+       f.`Enrollment (K-12)`, 
+       f.`Percent (%) Eligible FRPM (K-12)` AS poverty_level
+FROM schools s
+JOIN satscores sa ON s.CDSCode = sa.cds
+JOIN frpm f ON s.CDSCode = f.CDSCode
+WHERE s.Virtual = 'F' 
+  AND sa.AvgScrMath > 400
+ORDER BY total_sat_score DESC;","SELECT s.`School` AS school_name, 
+       s.`City`, 
+       s.`Zip`, 
+       sa.`AvgScrMath`, 
+       sa.`AvgScrRead`, 
+       sa.`AvgScrWrite`, 
+       (sa.`AvgScrRead` + sa.`AvgScrMath` + sa.`AvgScrWrite`) AS total_sat_score,
+       sa.`NumTstTakr`, 
+       sa.`NumGE1500`, 
+       CAST(sa.`NumGE1500` AS REAL) / sa.`NumTstTakr` AS excellence_rate,
+       f.`Enrollment (K-12)`, 
+       f.`Percent (%) Eligible FRPM (K-12)` AS poverty_level
+FROM schools s
+JOIN satscores sa ON s.`CDSCode` = sa.`cds`
+JOIN frpm f ON s.`CDSCode` = f.`CDSCode`
+WHERE s.`Virtual` = 'F' 
+  AND sa.`AvgScrMath` > 400
+ORDER BY total_sat_score DESC;",no such column: s.sname,
+6,challenging,False,False,False,True,same_wrong,"For magnet schools with over 500 SAT test takers, provide a comprehensive performance analysis including their SAT scores, rankings, poverty levels, and performance categories, sorted by total average SAT scores.","SELECT 
+    s.sname AS School_Name,
+    sc.AvgScrRead,
+    sc.AvgScrMath,
+    sc.AvgScrWrite,
+    (sc.AvgScrRead + sc.AvgScrMath + sc.AvgScrWrite) AS Total_Avg_SAT,
+    sc.NumTstTakr,
+    sc.NumGE1500,
+    (sc.NumGE1500 * 1.0 / sc.NumTstTakr) AS Excellence_Rate,
+    f.`Percent (%) Eligible FRPM (K-12)` AS Poverty_Level,
+    CASE 
+        WHEN f.`Percent (%) Eligible FRPM (K-12)` >= 0.75 THEN 'High Poverty'
+        WHEN f.`Percent (%) Eligible FRPM (K-12)` >= 0.5 THEN 'Medium Poverty'
+        ELSE 'Low Poverty'
+    END AS Poverty_Category,
+    CASE 
+        WHEN (sc.AvgScrRead + sc.AvgScrMath + sc.AvgScrWrite) >= 1500 THEN 'High Performance'
+        WHEN (sc.AvgScrRead + sc.AvgScrMath + sc.AvgScrWrite) >= 1200 THEN 'Medium Performance'
+        ELSE 'Low Performance'
+    END AS Performance_Category
+FROM satscores sc
+JOIN schools s ON sc.cds = s.CDSCode
+LEFT JOIN frpm f ON s.CDSCode = f.CDSCode
+WHERE s.Magnet = 1 AND sc.NumTstTakr > 500
+ORDER BY Total_Avg_SAT DESC;","SELECT 
+    sc.sname AS School_Name,
+    sc.AvgScrRead,
+    sc.AvgScrMath,
+    sc.AvgScrWrite,
+    (sc.AvgScrRead + sc.AvgScrMath + sc.AvgScrWrite) AS Total_Avg_SAT,
+    sc.NumTstTakr,
+    sc.NumGE1500,
+    (sc.NumGE1500 * 1.0 / sc.NumTstTakr) AS Excellence_Rate,
+    f.`Percent (%) Eligible FRPM (K-12)` AS Poverty_Level,
+    CASE 
+        WHEN f.`Percent (%) Eligible FRPM (K-12)` >= 0.75 THEN 'High Poverty'
+        WHEN f.`Percent (%) Eligible FRPM (K-12)` >= 0.5 THEN 'Medium Poverty'
+        ELSE 'Low Poverty'
+    END AS Poverty_Category,
+    CASE 
+        WHEN (sc.AvgScrRead + sc.AvgScrMath + sc.AvgScrWrite) >= 1500 THEN 'High Performance'
+        WHEN (sc.AvgScrRead + sc.AvgScrMath + sc.AvgScrWrite) >= 1200 THEN 'Medium Performance'
+        ELSE 'Low Performance'
+    END AS Performance_Category
+FROM satscores sc
+JOIN schools s ON sc.cds = s.CDSCode
+LEFT JOIN frpm f ON s.CDSCode = f.CDSCode
+WHERE s.Magnet = 1 AND sc.NumTstTakr > 500
+ORDER BY Total_Avg_SAT DESC;",no such column: s.sname,
+7,simple,True,True,True,True,same_correct,What is the phone number of the school that has the highest number of test takers with an SAT score of over 1500?,"SELECT s.Phone 
+FROM schools s 
+JOIN satscores sc ON s.CDSCode = sc.cds 
+ORDER BY sc.NumGE1500 DESC 
+LIMIT 1;","SELECT s.Phone 
+FROM schools s 
+JOIN satscores sc ON s.CDSCode = sc.cds 
+ORDER BY sc.NumGE1500 DESC 
+LIMIT 1;",,
+8,challenging,False,False,True,True,same_wrong,"For the top 10 schools with the highest number of students eligible for free or reduced price meals, provide detailed information including their location, type, FRPM statistics, and SAT performance metrics.","SELECT 
+    s.School,
+    s.City,
+    s.County,
+    s.SOCType,
+    f.`FRPM Count (K-12)`,
+    f.`Percent (%) Eligible FRPM (K-12)`,
+    f.`Enrollment (K-12)`,
+    sat.NumTstTakr,
+    sat.AvgScrRead,
+    sat.AvgScrMath,
+    sat.AvgScrWrite,
+    sat.NumGE1500,
+    (sat.NumGE1500 * 1.0 / sat.NumTstTakr) AS ExcellenceRate
+FROM schools s
+JOIN frpm f ON s.CDSCode = f.CDSCode
+JOIN satscores sat ON s.CDSCode = sat.cds
+ORDER BY f.`FRPM Count (K-12)` DESC
+LIMIT 10;","SELECT 
+    s.School,
+    s.City,
+    s.County,
+    s.SOCType,
+    f.`FRPM Count (K-12)`,
+    f.`Percent (%) Eligible FRPM (K-12)`,
+    f.`Enrollment (K-12)`,
+    sat.NumTstTakr,
+    sat.AvgScrRead,
+    sat.AvgScrMath,
+    sat.AvgScrWrite,
+    sat.NumGE1500,
+    (sat.NumGE1500 * 1.0 / sat.NumTstTakr) AS ExcellenceRate
+FROM schools s
+JOIN frpm f ON s.CDSCode = f.CDSCode
+JOIN satscores sat ON s.CDSCode = sat.cds
+ORDER BY f.`FRPM Count (K-12)` DESC
+LIMIT 10;",,
+9,simple,True,True,True,True,same_correct,"Among the schools with the average score in Math over 560 in the SAT test, how many schools are directly charter-funded?","SELECT COUNT(DISTINCT s.CDSCode)
+FROM satscores sat
+JOIN schools s ON sat.cds = s.CDSCode
+WHERE sat.AvgScrMath > 560
+  AND s.FundingType = 'Directly funded';","SELECT COUNT(DISTINCT s.CDSCode)
+FROM satscores sat
+JOIN schools s ON sat.cds = s.CDSCode
+WHERE sat.AvgScrMath > 560
+  AND s.FundingType = 'Directly funded';",,
+10,challenging,False,False,True,True,same_wrong,"For the school with the highest average SAT Reading score among schools with more than 10 test takers, provide comprehensive details including its location, test scores across all sections, poverty indicators, enrollment, and charter status.","SELECT s.CDSCode, s.Street, s.City, s.State, s.Zip, 
+       sa.AvgScrRead, sa.AvgScrMath, sa.AvgScrWrite, sa.NumTstTakr, sa.NumGE1500,
+       f.`Enrollment (K-12)`, f.`Percent (%) Eligible FRPM (K-12)`, f.`Free Meal Count (K-12)`, f.`FRPM Count (K-12)`,
+       s.Charter
+FROM satscores sa
+JOIN schools s ON sa.cds = s.CDSCode
+LEFT JOIN frpm f ON s.CDSCode = f.CDSCode
+WHERE sa.NumTstTakr > 10
+ORDER BY sa.AvgScrRead DESC
+LIMIT 1;","SELECT s.CDSCode, s.Street, s.City, s.State, s.Zip, 
+       sa.AvgScrRead, sa.AvgScrMath, sa.AvgScrWrite, sa.NumTstTakr, sa.NumGE1500,
+       f.`Enrollment (K-12)`, f.`Percent (%) Eligible FRPM (K-12)`, f.`Free Meal Count (K-12)`, f.`FRPM Count (K-12)`,
+       s.Charter
+FROM satscores sa
+JOIN schools s ON sa.cds = s.CDSCode
+LEFT JOIN frpm f ON s.CDSCode = f.CDSCode
+WHERE sa.NumTstTakr > 10
+ORDER BY sa.AvgScrRead DESC
+LIMIT 1;",,
+11,challenging,False,False,True,True,same_wrong,"For schools with total enrollment exceeding 500 students, show me their enrollment details, free meal eligibility rates, charter status, and SAT performance. Group them by county and categorize by FRPM levels (High: 75%+, Medium: 50-75%, Low: <50%). Only include schools where either the FRPM percentage is above 60% or more than 30% of SAT test takers scored 1500 or higher. Rank schools within each county by enrollment size and within each FRPM category by total SAT scores.","SELECT 
+    s.County,
+    CASE 
+        WHEN f.`Percent (%) Eligible FRPM (K-12)` >= 0.75 THEN 'High'
+        WHEN f.`Percent (%) Eligible FRPM (K-12)` >= 0.50 THEN 'Medium'
+        ELSE 'Low'
+    END AS FRPM_Level,
+    sc.sname AS School_Name,
+    f.`Enrollment (K-12)` + f.`Enrollment (Ages 5-17)` AS Total_Enrollment,
+    f.`Free Meal Count (K-12)` AS Free_Meal_Count,
+    f.`Percent (%) Eligible Free (K-12)` AS Free_Meal_Percent,
+    f.`Percent (%) Eligible FRPM (K-12)` AS FRPM_Percent,
+    f.`Charter School (Y/N)` AS Charter_Status,
+    sc.NumTstTakr,
+    sc.AvgScrRead,
+    sc.AvgScrMath,
+    sc.AvgScrWrite,
+    sc.AvgScrRead + sc.AvgScrMath + sc.AvgScrWrite AS Total_SAT_Score,
+    sc.NumGE1500,
+    ROW_NUMBER() OVER (PARTITION BY s.County ORDER BY (f.`Enrollment (K-12)` + f.`Enrollment (Ages 5-17)`) DESC) AS Enrollment_Rank,
+    ROW_NUMBER() OVER (PARTITION BY s.County, CASE 
+        WHEN f.`Percent (%) Eligible FRPM (K-12)` >= 0.75 THEN 'High'
+        WHEN f.`Percent (%) Eligible FRPM (K-12)` >= 0.50 THEN 'Medium'
+        ELSE 'Low'
+    END ORDER BY (sc.AvgScrRead + sc.AvgScrMath + sc.AvgScrWrite) DESC) AS SAT_Rank
+FROM schools s
+JOIN satscores sc ON s.CDSCode = sc.cds
+JOIN frpm f ON s.CDSCode = f.CDSCode
+WHERE (f.`Enrollment (K-12)` + f.`Enrollment (Ages 5-17)`) > 500
+  AND (f.`Percent (%) Eligible FRPM (K-12)` > 0.60 OR (sc.NumGE1500 * 1.0 / sc.NumTstTakr) > 0.30)
+GROUP BY s.County, FRPM_Level, sc.sname;","SELECT 
+    s.County,
+    CASE 
+        WHEN f.`Percent (%) Eligible FRPM (K-12)` >= 0.75 THEN 'High'
+        WHEN f.`Percent (%) Eligible FRPM (K-12)` >= 0.50 THEN 'Medium'
+        ELSE 'Low'
+    END AS FRPM_Level,
+    sc.sname AS School_Name,
+    f.`Enrollment (K-12)` + f.`Enrollment (Ages 5-17)` AS Total_Enrollment,
+    f.`Free Meal Count (K-12)` AS Free_Meal_Count,
+    f.`Percent (%) Eligible Free (K-12)` AS Free_Meal_Percent,
+    f.`Percent (%) Eligible FRPM (K-12)` AS FRPM_Percent,
+    f.`Charter School (Y/N)` AS Charter_Status,
+    sc.NumTstTakr,
+    sc.AvgScrRead,
+    sc.AvgScrMath,
+    sc.AvgScrWrite,
+    sc.AvgScrRead + sc.AvgScrMath + sc.AvgScrWrite AS Total_SAT_Score,
+    sc.NumGE1500,
+    ROW_NUMBER() OVER (PARTITION BY s.County ORDER BY (f.`Enrollment (K-12)` + f.`Enrollment (Ages 5-17)`) DESC) AS Enrollment_Rank,
+    ROW_NUMBER() OVER (PARTITION BY s.County, CASE 
+        WHEN f.`Percent (%) Eligible FRPM (K-12)` >= 0.75 THEN 'High'
+        WHEN f.`Percent (%) Eligible FRPM (K-12)` >= 0.50 THEN 'Medium'
+        ELSE 'Low'
+    END ORDER BY (sc.AvgScrRead + sc.AvgScrMath + sc.AvgScrWrite) DESC) AS SAT_Rank
+FROM schools s
+JOIN satscores sc ON s.CDSCode = sc.cds
+JOIN frpm f ON s.CDSCode = f.CDSCode
+WHERE (f.`Enrollment (K-12)` + f.`Enrollment (Ages 5-17)`) > 500
+  AND (f.`Percent (%) Eligible FRPM (K-12)` > 0.60 OR (sc.NumGE1500 * 1.0 / sc.NumTstTakr) > 0.30)
+GROUP BY s.County, FRPM_Level, sc.sname;",,
+12,challenging,False,False,True,True,same_wrong,"Among the schools with an SAT excellence rate over 30%, which school has the highest free meal eligibility rate in its county, and what are its details?","SELECT s.sname AS school_name, s.dname AS district_name, s.cname AS county_name, 
+       s.NumTstTakr, s.NumGE1500, 
+       (s.NumGE1500 * 1.0 / s.NumTstTakr) AS excellence_rate,
+       f.`Free Meal Count (Ages 5-17)`, f.`Enrollment (Ages 5-17)`,
+       (f.`Free Meal Count (Ages 5-17)` / f.`Enrollment (Ages 5-17)`) AS free_meal_eligibility_rate
+FROM satscores s
+JOIN schools sch ON s.cds = sch.CDSCode
+JOIN frpm f ON sch.CDSCode = f.CDSCode
+WHERE sch.StatusType = 'Active'
+  AND s.NumTstTakr > 0
+  AND (s.NumGE1500 * 1.0 / s.NumTstTakr) > 0.3
+  AND f.`Enrollment (Ages 5-17)` > 0
+  AND (f.`Free Meal Count (Ages 5-17)` / f.`Enrollment (Ages 5-17)`) = (
+      SELECT MAX(f2.`Free Meal Count (Ages 5-17)` / f2.`Enrollment (Ages 5-17)`)
+      FROM satscores s2
+      JOIN schools sch2 ON s2.cds = sch2.CDSCode
+      JOIN frpm f2 ON sch2.CDSCode = f2.CDSCode
+      WHERE sch2.StatusType = 'Active'
+        AND s2.NumTstTakr > 0
+        AND (s2.NumGE1500 * 1.0 / s2.NumTstTakr) > 0.3
+        AND f2.`Enrollment (Ages 5-17)` > 0
+        AND s2.cname = s.cname
+  );","SELECT s.sname AS school_name, s.dname AS district_name, s.cname AS county_name, 
+       s.NumTstTakr, s.NumGE1500, 
+       (s.NumGE1500 * 1.0 / s.NumTstTakr) AS excellence_rate,
+       f.`Free Meal Count (Ages 5-17)`, f.`Enrollment (Ages 5-17)`,
+       (f.`Free Meal Count (Ages 5-17)` / f.`Enrollment (Ages 5-17)`) AS free_meal_eligibility_rate
+FROM satscores s
+JOIN schools sch ON s.cds = sch.CDSCode
+JOIN frpm f ON sch.CDSCode = f.CDSCode
+WHERE sch.StatusType = 'Active'
+  AND s.NumTstTakr > 0
+  AND (s.NumGE1500 * 1.0 / s.NumTstTakr) > 0.3
+  AND f.`Enrollment (Ages 5-17)` > 0
+  AND (f.`Free Meal Count (Ages 5-17)` / f.`Enrollment (Ages 5-17)`) = (
+      SELECT MAX(f2.`Free Meal Count (Ages 5-17)` / f2.`Enrollment (Ages 5-17)`)
+      FROM satscores s2
+      JOIN schools sch2 ON s2.cds = sch2.CDSCode
+      JOIN frpm f2 ON sch2.CDSCode = f2.CDSCode
+      WHERE sch2.StatusType = 'Active'
+        AND s2.NumTstTakr > 0
+        AND (s2.NumGE1500 * 1.0 / s2.NumTstTakr) > 0.3
+        AND f2.`Enrollment (Ages 5-17)` > 0
+        AND s2.cname = s.cname
+  );",,
+13,challenging,False,False,True,True,same_wrong,"What are the top 3 schools ranked by SAT excellence rate, and for each school, provide their contact number, city, charter status, and poverty classification?","SELECT s.School, s.Phone, s.City, s.Charter,
+       CASE 
+           WHEN f.`Percent (%) Eligible FRPM (K-12)` > 0.75 THEN 'High Poverty'
+           WHEN f.`Percent (%) Eligible FRPM (K-12)` > 0.50 THEN 'Medium Poverty'
+           WHEN f.`Percent (%) Eligible FRPM (K-12)` > 0.25 THEN 'Low Poverty'
+           ELSE 'Very Low Poverty'
+       END AS poverty_classification,
+       (sc.NumGE1500 * 1.0 / sc.NumTstTakr) AS sat_excellence_rate
+FROM schools s
+JOIN satscores sc ON s.CDSCode = sc.cds
+JOIN frpm f ON s.CDSCode = f.CDSCode
+WHERE sc.NumTstTakr > 0
+ORDER BY sat_excellence_rate DESC
+LIMIT 3;","SELECT s.School, s.Phone, s.City, s.Charter,
+       CASE 
+           WHEN f.`Percent (%) Eligible FRPM (K-12)` > 0.75 THEN 'High Poverty'
+           WHEN f.`Percent (%) Eligible FRPM (K-12)` > 0.50 THEN 'Medium Poverty'
+           WHEN f.`Percent (%) Eligible FRPM (K-12)` > 0.25 THEN 'Low Poverty'
+           ELSE 'Very Low Poverty'
+       END AS poverty_classification,
+       (sc.NumGE1500 * 1.0 / sc.NumTstTakr) AS sat_excellence_rate
+FROM schools s
+JOIN satscores sc ON s.CDSCode = sc.cds
+JOIN frpm f ON s.CDSCode = f.CDSCode
+WHERE sc.NumTstTakr > 0
+ORDER BY sat_excellence_rate DESC
+LIMIT 3;",,
+14,simple,False,False,True,True,same_wrong,"List the top five schools, by descending order, from the highest to the lowest, the most number of Enrollment (Ages 5-17). Please give their NCES school identification number.","SELECT s.NCESSchool, f.`Enrollment (Ages 5-17)`
+FROM schools s
+JOIN frpm f ON s.CDSCode = f.CDSCode
+ORDER BY f.`Enrollment (Ages 5-17)` DESC
+LIMIT 5;","SELECT s.NCESSchool, f.`Enrollment (Ages 5-17)`
+FROM schools s
+JOIN frpm f ON s.CDSCode = f.CDSCode
+ORDER BY f.`Enrollment (Ages 5-17)` DESC
+LIMIT 5;",,
+15,simple,True,True,True,True,same_correct,Which active district has the highest average score in Reading?,"SELECT s.District, AVG(sa.AvgScrRead) AS avg_reading_score
+FROM schools s
+JOIN satscores sa ON s.CDSCode = sa.cds
+WHERE s.StatusType = 'Active'
+GROUP BY s.District
+ORDER BY avg_reading_score DESC
+LIMIT 1;","SELECT s.District, AVG(sa.AvgScrRead) AS avg_reading_score
+FROM schools s
+JOIN satscores sa ON s.CDSCode = sa.cds
+WHERE s.StatusType = 'Active'
+GROUP BY s.District
+ORDER BY avg_reading_score DESC
+LIMIT 1;",,
+16,simple,True,True,True,True,same_correct,How many schools in merged Alameda have number of test takers less than 100?,"SELECT COUNT(*) 
+FROM schools 
+JOIN satscores ON schools.CDSCode = satscores.cds 
+WHERE schools.StatusType = 'Merged' 
+  AND schools.County = 'Alameda' 
+  AND satscores.NumTstTakr < 100;","SELECT COUNT(*) 
+FROM schools 
+JOIN satscores ON schools.CDSCode = satscores.cds 
+WHERE schools.StatusType = 'Merged' 
+  AND schools.County = 'Alameda' 
+  AND satscores.NumTstTakr < 100;",,
+17,simple,False,False,True,True,same_wrong,"Rank schools by their average score in Writing where the score is greater than 499, showing their charter numbers.","SELECT s.School, s.CharterNum, sa.AvgScrWrite
+FROM schools s
+JOIN satscores sa ON s.CDSCode = sa.cds
+WHERE sa.AvgScrWrite > 499
+  AND s.CharterNum IS NOT NULL
+ORDER BY sa.AvgScrWrite DESC;","SELECT s.School, s.CharterNum, sa.AvgScrWrite
+FROM schools s
+JOIN satscores sa ON s.CDSCode = sa.cds
+WHERE sa.AvgScrWrite > 499
+  AND s.CharterNum IS NOT NULL
+ORDER BY sa.AvgScrWrite DESC;",,
+18,challenging,False,False,True,True,same_wrong,"What are the average SAT statistics and school characteristics for directly funded charter schools in Fresno County that have 250 or fewer test takers, including the breakdown by testing volume categories?","SELECT 
+    CASE 
+        WHEN s.NumTstTakr < 50 THEN 'under 50 testers'
+        WHEN s.NumTstTakr BETWEEN 50 AND 100 THEN '50-100 testers'
+        WHEN s.NumTstTakr BETWEEN 101 AND 250 THEN '100-250 testers'
+    END AS testing_volume_category,
+    AVG(s.AvgScrRead) AS avg_reading_score,
+    AVG(s.AvgScrMath) AS avg_math_score,
+    AVG(s.AvgScrWrite) AS avg_writing_score,
+    AVG(s.NumGE1500 * 1.0 / s.NumTstTakr) AS avg_excellence_rate,
+    COUNT(DISTINCT s.cds) AS school_count,
+    AVG(f.`Enrollment (K-12)`) AS avg_enrollment,
+    AVG(f.`Percent (%) Eligible FRPM (K-12)`) AS avg_frpm_percent
+FROM satscores s
+JOIN schools sch ON s.cds = sch.CDSCode
+JOIN frpm f ON sch.CDSCode = f.CDSCode
+WHERE sch.County = 'Fresno'
+    AND sch.FundingType = 'Directly funded'
+    AND s.NumTstTakr <= 250
+GROUP BY testing_volume_category;","SELECT 
+    CASE 
+        WHEN s.NumTstTakr < 50 THEN 'under 50 testers'
+        WHEN s.NumTstTakr BETWEEN 50 AND 100 THEN '50-100 testers'
+        WHEN s.NumTstTakr BETWEEN 101 AND 250 THEN '100-250 testers'
+    END AS testing_volume_category,
+    AVG(s.AvgScrRead) AS avg_reading_score,
+    AVG(s.AvgScrMath) AS avg_math_score,
+    AVG(s.AvgScrWrite) AS avg_writing_score,
+    AVG(s.NumGE1500 * 1.0 / s.NumTstTakr) AS avg_excellence_rate,
+    COUNT(DISTINCT s.cds) AS school_count,
+    AVG(f.`Enrollment (K-12)`) AS avg_enrollment,
+    AVG(f.`Percent (%) Eligible FRPM (K-12)`) AS avg_frpm_percent
+FROM satscores s
+JOIN schools sch ON s.cds = sch.CDSCode
+JOIN frpm f ON sch.CDSCode = f.CDSCode
+WHERE sch.County = 'Fresno'
+    AND sch.FundingType = 'Directly funded'
+    AND s.NumTstTakr <= 250
+GROUP BY testing_volume_category;",,
+19,challenging,False,False,False,True,same_wrong,"For the school with the highest average math SAT score among active schools with at least 10 test takers, provide its contact information, all SAT scores, charter status, enrollment, and percentage of students eligible for free or reduced price meals.","SELECT s.School, s.Phone, s.Website, 
+       sa.AvgScrRead, sa.AvgScrMath, sa.AvgScrWrite, sa.NumTstTakr, sa.NumGE1500,
+       sc.`Charter School (Y/N)` AS charter_status,
+       f.`Enrollment (K-12)`, f.`Percent (%) Eligible FRPM (K-12)`
+FROM satscores sa
+JOIN schools s ON sa.cds = s.CDSCode
+JOIN frpm f ON s.CDSCode = f.CDSCode
+JOIN (
+    SELECT sa2.cds
+    FROM satscores sa2
+    JOIN schools s2 ON sa2.cds = s2.CDSCode
+    WHERE s2.StatusType = 'Active' AND sa2.NumTstTakr >= 10
+    ORDER BY sa2.AvgScrMath DESC
+    LIMIT 1
+) top ON sa.cds = top.cds;","SELECT s.School, s.Phone, s.Website, 
+       sa.AvgScrRead, sa.AvgScrMath, sa.AvgScrWrite, sa.NumTstTakr, sa.NumGE1500,
+       s.Charter AS charter_status,
+       f.`Enrollment (K-12)`, f.`Percent (%) Eligible FRPM (K-12)`
+FROM satscores sa
+JOIN schools s ON sa.cds = s.CDSCode
+JOIN frpm f ON s.CDSCode = f.CDSCode
+JOIN (
+    SELECT sa2.cds
+    FROM satscores sa2
+    JOIN schools s2 ON sa2.cds = s2.CDSCode
+    WHERE s2.StatusType = 'Active' AND sa2.NumTstTakr >= 10
+    ORDER BY sa2.AvgScrMath DESC
+    LIMIT 1
+) top ON sa.cds = top.cds;",no such column: sc.Charter School (Y/N),
+20,challenging,False,False,True,True,same_wrong,"What are the key statistics for high schools in Amador County, including total number of schools, average enrollment, charter vs non-charter breakdown, average poverty rate, number of districts, SAT performance metrics, the largest school by enrollment, and how many schools have high poverty levels?","SELECT 
+    COUNT(DISTINCT s.CDSCode) AS total_schools,
+    ROUND(AVG(f.`Enrollment (K-12)`), 2) AS avg_enrollment,
+    SUM(CASE WHEN f.`Charter School (Y/N)` = 1 THEN 1 ELSE 0 END) AS charter_schools,
+    SUM(CASE WHEN f.`Charter School (Y/N)` = 0 THEN 1 ELSE 0 END) AS non_charter_schools,
+    ROUND(AVG(f.`Percent (%) Eligible FRPM (K-12)`), 4) AS avg_poverty_rate,
+    COUNT(DISTINCT s.District) AS num_districts,
+    ROUND(AVG(sat.AvgScrRead), 2) AS avg_reading_score,
+    ROUND(AVG(sat.AvgScrMath), 2) AS avg_math_score,
+    ROUND(AVG(sat.AvgScrWrite), 2) AS avg_writing_score,
+    ROUND(AVG(CAST(sat.NumGE1500 AS REAL) / NULLIF(sat.NumTstTakr, 0)), 4) AS avg_excellence_rate,
+    (SELECT s2.School FROM schools s2 JOIN frpm f2 ON s2.CDSCode = f2.CDSCode WHERE s2.County = 'Amador' AND f2.`Low Grade` = '9' AND f2.`High Grade` = '12' ORDER BY f2.`Enrollment (K-12)` DESC LIMIT 1) AS largest_school,
+    SUM(CASE WHEN f.`Percent (%) Eligible FRPM (K-12)` > 0.75 THEN 1 ELSE 0 END) AS high_poverty_schools
+FROM schools s
+JOIN frpm f ON s.CDSCode = f.CDSCode
+LEFT JOIN satscores sat ON s.CDSCode = sat.cds
+WHERE s.County = 'Amador'
+    AND f.`Low Grade` = '9'
+    AND f.`High Grade` = '12';","SELECT 
+    COUNT(DISTINCT s.CDSCode) AS total_schools,
+    ROUND(AVG(f.`Enrollment (K-12)`), 2) AS avg_enrollment,
+    SUM(CASE WHEN f.`Charter School (Y/N)` = 1 THEN 1 ELSE 0 END) AS charter_schools,
+    SUM(CASE WHEN f.`Charter School (Y/N)` = 0 THEN 1 ELSE 0 END) AS non_charter_schools,
+    ROUND(AVG(f.`Percent (%) Eligible FRPM (K-12)`), 4) AS avg_poverty_rate,
+    COUNT(DISTINCT s.District) AS num_districts,
+    ROUND(AVG(sat.AvgScrRead), 2) AS avg_reading_score,
+    ROUND(AVG(sat.AvgScrMath), 2) AS avg_math_score,
+    ROUND(AVG(sat.AvgScrWrite), 2) AS avg_writing_score,
+    ROUND(AVG(CAST(sat.NumGE1500 AS REAL) / NULLIF(sat.NumTstTakr, 0)), 4) AS avg_excellence_rate,
+    (SELECT s2.School FROM schools s2 JOIN frpm f2 ON s2.CDSCode = f2.CDSCode WHERE s2.County = 'Amador' AND f2.`Low Grade` = '9' AND f2.`High Grade` = '12' ORDER BY f2.`Enrollment (K-12)` DESC LIMIT 1) AS largest_school,
+    SUM(CASE WHEN f.`Percent (%) Eligible FRPM (K-12)` > 0.75 THEN 1 ELSE 0 END) AS high_poverty_schools
+FROM schools s
+JOIN frpm f ON s.CDSCode = f.CDSCode
+LEFT JOIN satscores sat ON s.CDSCode = sat.cds
+WHERE s.County = 'Amador'
+    AND f.`Low Grade` = '9'
+    AND f.`High Grade` = '12';",,
+21,challenging,False,False,True,True,same_wrong,"For Los Angeles schools with more than 500 free meals but less than 700 FRPM meals for K-12 students, what is the average percentage of students receiving free meals, how many are charter versus non-charter schools, what is their average SAT score, and how are they distributed across free meal categories?","SELECT 
+    AVG(f.`Percent (%) Eligible Free (K-12)`) * 100 AS avg_free_meal_pct,
+    SUM(CASE WHEN s.Charter = 1 THEN 1 ELSE 0 END) AS charter_count,
+    SUM(CASE WHEN s.Charter = 0 THEN 1 ELSE 0 END) AS non_charter_count,
+    AVG(sat.AvgScrRead + sat.AvgScrMath + sat.AvgScrWrite) AS avg_sat_score,
+    CASE 
+        WHEN f.`Free Meal Count (K-12)` > 600 THEN 'Very High'
+        WHEN f.`Free Meal Count (K-12)` > 500 THEN 'High'
+        ELSE 'Moderate'
+    END AS free_meal_category
+FROM schools s
+JOIN frpm f ON s.CDSCode = f.CDSCode
+JOIN satscores sat ON s.CDSCode = sat.cds
+WHERE s.County = 'Los Angeles'
+  AND f.`Free Meal Count (K-12)` > 500
+  AND f.`FRPM Count (K-12)` < 700
+GROUP BY free_meal_category;","SELECT 
+    AVG(f.`Percent (%) Eligible Free (K-12)`) * 100 AS avg_free_meal_pct,
+    SUM(CASE WHEN s.Charter = 1 THEN 1 ELSE 0 END) AS charter_count,
+    SUM(CASE WHEN s.Charter = 0 THEN 1 ELSE 0 END) AS non_charter_count,
+    AVG(sat.AvgScrRead + sat.AvgScrMath + sat.AvgScrWrite) AS avg_sat_score,
+    CASE 
+        WHEN f.`Free Meal Count (K-12)` > 600 THEN 'Very High'
+        WHEN f.`Free Meal Count (K-12)` > 500 THEN 'High'
+        ELSE 'Moderate'
+    END AS free_meal_category
+FROM schools s
+JOIN frpm f ON s.CDSCode = f.CDSCode
+JOIN satscores sat ON s.CDSCode = sat.cds
+WHERE s.County = 'Los Angeles'
+  AND f.`Free Meal Count (K-12)` > 500
+  AND f.`FRPM Count (K-12)` < 700
+GROUP BY free_meal_category;",,
+22,simple,False,False,True,True,same_wrong,Which school in Contra Costa has the highest number of test takers?,"SELECT s.sname 
+FROM satscores s 
+JOIN schools sch ON s.cds = sch.CDSCode 
+WHERE sch.County = 'Contra Costa' 
+ORDER BY s.NumTstTakr DESC 
+LIMIT 1;","SELECT s.sname 
+FROM satscores s 
+JOIN schools sch ON s.cds = sch.CDSCode 
+WHERE sch.County = 'Contra Costa' 
+ORDER BY s.NumTstTakr DESC 
+LIMIT 1;",,
+23,moderate,True,True,True,True,same_correct,List the names of schools with more than 30 difference in enrollements between K-12 and ages 5-17? Please also give the full street adress of the schools.,"SELECT s.School, s.Street 
+FROM schools s 
+JOIN frpm f ON s.CDSCode = f.CDSCode 
+WHERE (f.`Enrollment (K-12)` - f.`Enrollment (Ages 5-17)`) > 30;","SELECT s.School, s.Street 
+FROM schools s 
+JOIN frpm f ON s.CDSCode = f.CDSCode 
+WHERE (f.`Enrollment (K-12)` - f.`Enrollment (Ages 5-17)`) > 30;",,
+24,moderate,False,False,True,True,same_wrong,Give the names of the schools with the percent eligible for free meals in K-12 is more than 0.1 and test takers whose test score is greater than or equal to 1500?,"SELECT DISTINCT s.School
+FROM schools s
+JOIN frpm f ON s.CDSCode = f.CDSCode
+JOIN satscores sa ON s.CDSCode = sa.cds
+WHERE (f.`Free Meal Count (K-12)` / f.`Enrollment (K-12)`) > 0.1
+  AND sa.NumGE1500 > 0;","SELECT DISTINCT s.School
+FROM schools s
+JOIN frpm f ON s.CDSCode = f.CDSCode
+JOIN satscores sa ON s.CDSCode = sa.cds
+WHERE (f.`Free Meal Count (K-12)` / f.`Enrollment (K-12)`) > 0.1
+  AND sa.NumGE1500 > 0;",,
+25,moderate,False,False,True,True,same_wrong,"Name schools in Riverside which the average of average math score for SAT is grater than 400, what is the type of educational option that these school provides?","SELECT DISTINCT f.`Educational Option Type`
+FROM satscores s
+JOIN schools sc ON s.cds = sc.CDSCode
+JOIN frpm f ON sc.CDSCode = f.CDSCode
+WHERE sc.County = 'Riverside'
+  AND s.AvgScrMath > 400;","SELECT DISTINCT f.`Educational Option Type`
+FROM satscores s
+JOIN schools sc ON s.cds = sc.CDSCode
+JOIN frpm f ON sc.CDSCode = f.CDSCode
+WHERE sc.County = 'Riverside'
+  AND s.AvgScrMath > 400;",,
+26,moderate,False,False,True,True,same_wrong,State the names and full communication addresses of high schools in Monterey that offer more than 800 free or reduced-priced meals for ages 15-17.,"SELECT s.School, s.Street, s.City, s.State, s.Zip
+FROM schools s
+JOIN frpm f ON s.CDSCode = f.CDSCode
+WHERE s.City = 'Monterey'
+  AND s.SOCType = 'High Schools (Public)'
+  AND f.`FRPM Count (Ages 5-17)` > 800;","SELECT s.School, s.Street, s.City, s.State, s.Zip
+FROM schools s
+JOIN frpm f ON s.CDSCode = f.CDSCode
+WHERE s.City = 'Monterey'
+  AND s.SOCType = 'High Schools (Public)'
+  AND f.`FRPM Count (Ages 5-17)` > 800;",,
+27,moderate,True,True,True,True,same_correct,"What is the average score in writing for the schools that were opened after 1991 or closed before 2000? List the school names along with the score. Also, list the communication number of the schools if there is any.","SELECT s.`School`, sats.`AvgScrWrite`, s.`Phone` AS `communication_number`
+FROM schools s
+LEFT JOIN satscores sats ON s.`CDSCode` = sats.`cds`
+WHERE (s.`OpenDate` > '1991-12-31' OR s.`ClosedDate` < '2000-01-01');","SELECT s.`School`, sats.`AvgScrWrite`, s.`Phone` AS `communication_number`
+FROM schools s
+LEFT JOIN satscores sats ON s.`CDSCode` = sats.`cds`
+WHERE (s.`OpenDate` > '1991-12-31' OR s.`ClosedDate` < '2000-01-01');",,
+28,challenging,False,False,True,True,same_wrong,"Consider the average difference between K-12 enrollment and 15-17 enrollment of schools that are locally funded, list the names and DOC type of schools which has a difference above this average.","SELECT s.School, s.DOCType
+FROM schools s
+JOIN frpm f ON s.CDSCode = f.CDSCode
+WHERE s.FundingType = 'Locally funded'
+  AND (f.`Enrollment (K-12)` - f.`Enrollment (Ages 5-17)`) > (
+    SELECT AVG(f2.`Enrollment (K-12)` - f2.`Enrollment (Ages 5-17)`)
+    FROM frpm f2
+    JOIN schools s2 ON s2.CDSCode = f2.CDSCode
+    WHERE s2.FundingType = 'Locally funded'
+  );","SELECT s.School, s.DOCType
+FROM schools s
+JOIN frpm f ON s.CDSCode = f.CDSCode
+WHERE s.FundingType = 'Locally funded'
+  AND (f.`Enrollment (K-12)` - f.`Enrollment (Ages 5-17)`) > (
+    SELECT AVG(f2.`Enrollment (K-12)` - f2.`Enrollment (Ages 5-17)`)
+    FROM frpm f2
+    JOIN schools s2 ON s2.CDSCode = f2.CDSCode
+    WHERE s2.FundingType = 'Locally funded'
+  );",,
+29,simple,True,True,True,True,same_correct,When did the first-through-twelfth-grade school with the largest enrollment open?,"SELECT s.OpenDate 
+FROM schools s 
+JOIN frpm f ON s.CDSCode = f.CDSCode 
+WHERE f.`Enrollment (K-12)` = (SELECT MAX(`Enrollment (K-12)`) FROM frpm) 
+LIMIT 1;","SELECT s.OpenDate 
+FROM schools s 
+JOIN frpm f ON s.CDSCode = f.CDSCode 
+WHERE f.`Enrollment (K-12)` = (SELECT MAX(`Enrollment (K-12)`) FROM frpm) 
+LIMIT 1;",,
+30,simple,False,False,True,True,same_wrong,Which cities have the top 5 lowest enrollment number for students in grades 1 through 12?,"SELECT s.City, f.`Enrollment (K-12)` 
+FROM schools s 
+JOIN frpm f ON s.CDSCode = f.CDSCode 
+ORDER BY f.`Enrollment (K-12)` ASC 
+LIMIT 5;","SELECT s.City, f.`Enrollment (K-12)` 
+FROM schools s 
+JOIN frpm f ON s.CDSCode = f.CDSCode 
+ORDER BY f.`Enrollment (K-12)` ASC 
+LIMIT 5;",,
+31,challenging,False,False,True,True,same_wrong,"For the 10th and 11th largest schools by K-12 enrollment, provide a comprehensive profile including their enrollment statistics, free meal eligibility rates, location details, school type, grade spans offered, and SAT performance metrics.","SELECT 
+    s.School,
+    s.City,
+    s.County,
+    s.SOCType,
+    s.GSoffered,
+    f.`Enrollment (K-12)`,
+    f.`Free Meal Count (K-12)`,
+    f.`Percent (%) Eligible Free (K-12)`,
+    f.`FRPM Count (K-12)`,
+    f.`Percent (%) Eligible FRPM (K-12)`,
+    sc.NumTstTakr,
+    sc.AvgScrRead,
+    sc.AvgScrMath,
+    sc.AvgScrWrite,
+    sc.NumGE1500,
+    CAST(sc.NumGE1500 AS REAL) / NULLIF(sc.NumTstTakr, 0) AS ExcellenceRate
+FROM schools s
+JOIN frpm f ON s.CDSCode = f.CDSCode
+JOIN satscores sc ON s.CDSCode = sc.cds
+WHERE s.CDSCode IN (
+    SELECT CDSCode
+    FROM frpm
+    WHERE `Enrollment (K-12)` IS NOT NULL
+    ORDER BY `Enrollment (K-12)` DESC
+    LIMIT 1 OFFSET 9
+)
+OR s.CDSCode IN (
+    SELECT CDSCode
+    FROM frpm
+    WHERE `Enrollment (K-12)` IS NOT NULL
+    ORDER BY `Enrollment (K-12)` DESC
+    LIMIT 1 OFFSET 10
+);","SELECT 
+    s.School,
+    s.City,
+    s.County,
+    s.SOCType,
+    s.GSoffered,
+    f.`Enrollment (K-12)`,
+    f.`Free Meal Count (K-12)`,
+    f.`Percent (%) Eligible Free (K-12)`,
+    f.`FRPM Count (K-12)`,
+    f.`Percent (%) Eligible FRPM (K-12)`,
+    sc.NumTstTakr,
+    sc.AvgScrRead,
+    sc.AvgScrMath,
+    sc.AvgScrWrite,
+    sc.NumGE1500,
+    CAST(sc.NumGE1500 AS REAL) / NULLIF(sc.NumTstTakr, 0) AS ExcellenceRate
+FROM schools s
+JOIN frpm f ON s.CDSCode = f.CDSCode
+JOIN satscores sc ON s.CDSCode = sc.cds
+WHERE s.CDSCode IN (
+    SELECT CDSCode
+    FROM frpm
+    WHERE `Enrollment (K-12)` IS NOT NULL
+    ORDER BY `Enrollment (K-12)` DESC
+    LIMIT 1 OFFSET 9
+)
+OR s.CDSCode IN (
+    SELECT CDSCode
+    FROM frpm
+    WHERE `Enrollment (K-12)` IS NOT NULL
+    ORDER BY `Enrollment (K-12)` DESC
+    LIMIT 1 OFFSET 10
+);",,
+32,challenging,False,False,False,True,same_wrong,"For the top 5 schools with the highest number of students eligible for free or reduced price meals in grades K-12 among schools with ownership code 66, what are their eligibility rates, SAT performance metrics, and how do they compare in terms of SAT participation and high scorer rates?","SELECT 
+    s.sname AS School_Name,
+    f.`FRPM Count (K-12)` AS FRPM_Count,
+    f.`Enrollment (K-12)` AS Enrollment,
+    (f.`FRPM Count (K-12)` / f.`Enrollment (K-12)`) AS Eligibility_Rate,
+    sat.NumTstTakr AS SAT_Takers,
+    sat.enroll12 AS Enrollment_12,
+    (sat.NumTstTakr * 1.0 / sat.enroll12) AS SAT_Participation_Rate,
+    sat.NumGE1500 AS High_Scorers,
+    (sat.NumGE1500 * 1.0 / sat.NumTstTakr) AS High_Scorer_Rate
+FROM schools sc
+JOIN frpm f ON sc.CDSCode = f.CDSCode
+JOIN satscores sat ON sc.CDSCode = sat.cds
+WHERE sc.SOC = '66'
+ORDER BY f.`FRPM Count (K-12)` DESC
+LIMIT 5;","SELECT 
+    sc.School AS School_Name,
+    f.`FRPM Count (K-12)` AS FRPM_Count,
+    f.`Enrollment (K-12)` AS Enrollment,
+    (f.`FRPM Count (K-12)` / f.`Enrollment (K-12)`) AS Eligibility_Rate,
+    sat.NumTstTakr AS SAT_Takers,
+    sat.enroll12 AS Enrollment_12,
+    (sat.NumTstTakr * 1.0 / sat.enroll12) AS SAT_Participation_Rate,
+    sat.NumGE1500 AS High_Scorers,
+    (sat.NumGE1500 * 1.0 / sat.NumTstTakr) AS High_Scorer_Rate
+FROM schools sc
+JOIN frpm f ON sc.CDSCode = f.CDSCode
+JOIN satscores sat ON sc.CDSCode = sat.cds
+WHERE sc.SOC = '66'
+ORDER BY f.`FRPM Count (K-12)` DESC
+LIMIT 5;",no such column: s.sname,
+33,moderate,False,False,True,True,same_wrong,"If there are any, what are the websites address of the schools with a free meal count of 1,900-2,000 to students aged 5-17? Include the name of the school.","SELECT s.School, s.Website
+FROM schools s
+JOIN frpm f ON s.CDSCode = f.CDSCode
+WHERE f.`Free Meal Count (Ages 5-17)` BETWEEN 1900 AND 2000;","SELECT s.School, s.Website
+FROM schools s
+JOIN frpm f ON s.CDSCode = f.CDSCode
+WHERE f.`Free Meal Count (Ages 5-17)` BETWEEN 1900 AND 2000;",,
+34,moderate,True,True,True,True,same_correct,What is the free rate for students between the ages of 5 and 17 at the school run by Kacey Gibson?,"SELECT f.`Free Meal Count (Ages 5-17)` / f.`Enrollment (Ages 5-17)` AS free_rate
+FROM frpm f
+JOIN schools s ON f.CDSCode = s.CDSCode
+WHERE s.AdmLName1 = 'Gibson' AND s.AdmFName1 = 'Kacey';","SELECT f.`Free Meal Count (Ages 5-17)` / f.`Enrollment (Ages 5-17)` AS free_rate
+FROM frpm f
+JOIN schools s ON f.CDSCode = s.CDSCode
+WHERE s.AdmLName1 = 'Gibson' AND s.AdmFName1 = 'Kacey';",,
+35,moderate,True,True,True,True,same_correct,What is the administrator's email address of the chartered school with the fewest students enrolled in grades 1 through 12?,"SELECT s.AdmEmail1 
+FROM schools s 
+JOIN frpm f ON s.CDSCode = f.CDSCode 
+WHERE s.Charter = 1 
+ORDER BY f.`Enrollment (K-12)` ASC 
+LIMIT 1;","SELECT s.AdmEmail1 
+FROM schools s 
+JOIN frpm f ON s.CDSCode = f.CDSCode 
+WHERE s.Charter = 1 
+ORDER BY f.`Enrollment (K-12)` ASC 
+LIMIT 1;",,
+36,challenging,False,False,True,True,same_wrong,Under whose administration is the school with the highest number of students scoring 1500 or more on the SAT? Indicate their full names.,"SELECT s.AdmFName1 || ' ' || s.AdmLName1 AS full_name
+FROM satscores AS sat
+JOIN schools AS s ON sat.cds = s.CDSCode
+ORDER BY sat.NumGE1500 DESC
+LIMIT 1;","SELECT s.AdmFName1 || ' ' || s.AdmLName1 AS full_name
+FROM satscores AS sat
+JOIN schools AS s ON sat.cds = s.CDSCode
+ORDER BY sat.NumGE1500 DESC
+LIMIT 1;",,
+37,moderate,False,False,True,True,same_wrong,"What is the complete address of the school with the lowest excellence rate? Indicate the Street, City, Zip and State.","SELECT s.Street, s.City, s.Zip, s.State
+FROM schools s
+JOIN satscores sc ON s.CDSCode = sc.cds
+WHERE sc.NumTstTakr > 0
+ORDER BY CAST(sc.NumGE1500 AS REAL) / sc.NumTstTakr ASC
+LIMIT 1;","SELECT s.Street, s.City, s.Zip, s.State
+FROM schools s
+JOIN satscores sc ON s.CDSCode = sc.cds
+WHERE sc.NumTstTakr > 0
+ORDER BY CAST(sc.NumGE1500 AS REAL) / sc.NumTstTakr ASC
+LIMIT 1;",,
+38,simple,True,True,True,True,same_correct,"What are the webpages for the Los Angeles County school that has between 2,000 and 3,000 test takers?","SELECT s.Website 
+FROM schools s 
+JOIN satscores sc ON s.CDSCode = sc.cds 
+WHERE s.County = 'Los Angeles' 
+AND sc.NumTstTakr BETWEEN 2000 AND 3000;","SELECT s.Website 
+FROM schools s 
+JOIN satscores sc ON s.CDSCode = sc.cds 
+WHERE s.County = 'Los Angeles' 
+AND sc.NumTstTakr BETWEEN 2000 AND 3000;",,
+39,simple,True,True,True,True,same_correct,What is the average number of test takers from Fresno schools that opened between 1/1/1980 and 12/31/1980?,"SELECT AVG(s.NumTstTakr)
+FROM satscores s
+JOIN schools sc ON s.cds = sc.CDSCode
+WHERE sc.County = 'Fresno'
+  AND sc.OpenDate BETWEEN '1980-01-01' AND '1980-12-31';","SELECT AVG(s.NumTstTakr)
+FROM satscores s
+JOIN schools sc ON s.cds = sc.CDSCode
+WHERE sc.County = 'Fresno'
+  AND sc.OpenDate BETWEEN '1980-01-01' AND '1980-12-31';",,
+40,moderate,False,False,True,True,same_wrong,What is the telephone number for the school with the lowest average score in reading in Fresno Unified?,"SELECT s.Phone
+FROM satscores AS sc
+JOIN schools AS s ON sc.cds = s.CDSCode
+WHERE s.District = 'Fresno Unified'
+ORDER BY sc.AvgScrRead ASC
+LIMIT 1;","SELECT s.Phone
+FROM satscores AS sc
+JOIN schools AS s ON sc.cds = s.CDSCode
+WHERE s.District = 'Fresno Unified'
+ORDER BY sc.AvgScrRead ASC
+LIMIT 1;",,
+41,simple,False,True,False,True,improved,List the names of virtual schools that are among the top 5 in their respective counties based on average reading scores.,"SELECT s.sname
+FROM satscores AS sc
+JOIN schools AS s ON sc.cds = s.CDSCode
+WHERE s.Virtual = 'F'
+  AND (
+    SELECT COUNT(*)
+    FROM satscores AS sc2
+    JOIN schools AS s2 ON sc2.cds = s2.CDSCode
+    WHERE s2.Virtual = 'F'
+      AND s2.County = s.County
+      AND (sc2.AvgScrRead > sc.AvgScrRead OR (sc2.AvgScrRead = sc.AvgScrRead AND sc2.cds < sc.cds))
+  ) < 5;","SELECT s.School
+FROM satscores AS sc
+JOIN schools AS s ON sc.cds = s.CDSCode
+WHERE s.Virtual = 'F'
+  AND (
+    SELECT COUNT(*)
+    FROM satscores AS sc2
+    JOIN schools AS s2 ON sc2.cds = s2.CDSCode
+    WHERE s2.Virtual = 'F'
+      AND s2.County = s.County
+      AND (sc2.AvgScrRead > sc.AvgScrRead OR (sc2.AvgScrRead = sc.AvgScrRead AND sc2.cds < sc.cds))
+  ) < 5;",no such column: s.sname,
+42,simple,True,True,True,True,same_correct,What is the type of education offered in the school who scored the highest average in Math?,"SELECT s.`EdOpsName`
+FROM satscores AS sc
+JOIN schools AS s ON sc.cds = s.CDSCode
+ORDER BY sc.AvgScrMath DESC
+LIMIT 1;","SELECT s.`EdOpsName`
+FROM satscores AS sc
+JOIN schools AS s ON sc.cds = s.CDSCode
+ORDER BY sc.AvgScrMath DESC
+LIMIT 1;",,
+43,moderate,True,True,True,True,same_correct,"What is the average math score of the school with the lowest average score for all subjects, and in which county is it located?","SELECT s.AvgScrMath, sc.County
+FROM satscores s
+JOIN schools sc ON s.cds = sc.CDSCode
+WHERE (s.AvgScrMath + s.AvgScrRead + s.AvgScrWrite) / 3 = (
+    SELECT MIN((AvgScrMath + AvgScrRead + AvgScrWrite) / 3)
+    FROM satscores
+);","SELECT s.AvgScrMath, sc.County
+FROM satscores s
+JOIN schools sc ON s.cds = sc.CDSCode
+WHERE (s.AvgScrMath + s.AvgScrRead + s.AvgScrWrite) / 3 = (
+    SELECT MIN((AvgScrMath + AvgScrRead + AvgScrWrite) / 3)
+    FROM satscores
+);",,
+44,simple,True,True,True,True,same_correct,What is the average writing score of the school who has the highest number of test takers whose total SAT sscores are greater or equal to 1500? Indicate the city to where the school is situated.,"SELECT s.AvgScrWrite, sc.City
+FROM satscores s
+JOIN schools sc ON s.cds = sc.CDSCode
+WHERE s.NumGE1500 = (SELECT MAX(NumGE1500) FROM satscores)
+LIMIT 1;","SELECT s.AvgScrWrite, sc.City
+FROM satscores s
+JOIN schools sc ON s.cds = sc.CDSCode
+WHERE s.NumGE1500 = (SELECT MAX(NumGE1500) FROM satscores)
+LIMIT 1;",,
+45,challenging,False,False,False,True,same_wrong,"For schools administered by Ricci Ulrich, provide a comprehensive performance analysis including their SAT scores in all three sections, total SAT score, rankings compared to other schools, FRPM eligibility rate, test participation rate, and how their writing scores compare to their district average.","SELECT 
+    s.sname AS School_Name,
+    sa.AvgScrRead AS Reading_Score,
+    sa.AvgScrMath AS Math_Score,
+    sa.AvgScrWrite AS Writing_Score,
+    (sa.AvgScrRead + sa.AvgScrMath + sa.AvgScrWrite) AS Total_SAT_Score,
+    RANK() OVER (ORDER BY (sa.AvgScrRead + sa.AvgScrMath + sa.AvgScrWrite) DESC) AS Overall_Rank,
+    f.`Percent (%) Eligible FRPM (K-12)` AS FRPM_Eligibility_Rate,
+    ROUND((CAST(sa.NumTstTakr AS REAL) / f.`Enrollment (K-12)`) * 100, 2) AS Test_Participation_Rate,
+    sa.AvgScrWrite - AVG(sa2.AvgScrWrite) OVER (PARTITION BY s.District) AS Writing_Score_vs_District_Avg
+FROM schools s
+JOIN satscores sa ON s.CDSCode = sa.cds
+JOIN frpm f ON s.CDSCode = f.CDSCode
+LEFT JOIN satscores sa2 ON s.District = sa2.dname
+WHERE s.AdmLName1 = 'Ulrich' AND s.AdmFName1 = 'Ricci';","SELECT 
+    sa.sname AS School_Name,
+    sa.AvgScrRead AS Reading_Score,
+    sa.AvgScrMath AS Math_Score,
+    sa.AvgScrWrite AS Writing_Score,
+    (sa.AvgScrRead + sa.AvgScrMath + sa.AvgScrWrite) AS Total_SAT_Score,
+    RANK() OVER (ORDER BY (sa.AvgScrRead + sa.AvgScrMath + sa.AvgScrWrite) DESC) AS Overall_Rank,
+    f.`Percent (%) Eligible FRPM (K-12)` AS FRPM_Eligibility_Rate,
+    ROUND((CAST(sa.NumTstTakr AS REAL) / f.`Enrollment (K-12)`) * 100, 2) AS Test_Participation_Rate,
+    sa.AvgScrWrite - AVG(sa2.AvgScrWrite) OVER (PARTITION BY s.District) AS Writing_Score_vs_District_Avg
+FROM schools s
+JOIN satscores sa ON s.CDSCode = sa.cds
+JOIN frpm f ON s.CDSCode = f.CDSCode
+LEFT JOIN satscores sa2 ON s.District = sa2.dname
+WHERE s.AdmLName1 = 'Ulrich' AND s.AdmFName1 = 'Ricci';",no such column: s.sname,
+46,simple,False,False,True,True,same_wrong,Which state special schools have the highest number of enrollees from grades 1 through 12?,"SELECT s.`School`, f.`Enrollment (K-12)`
+FROM schools s
+JOIN frpm f ON s.`CDSCode` = f.`CDSCode`
+WHERE s.`DOC` = '31'
+ORDER BY f.`Enrollment (K-12)` DESC;","SELECT s.`School`, f.`Enrollment (K-12)`
+FROM schools s
+JOIN frpm f ON s.`CDSCode` = f.`CDSCode`
+WHERE s.`DOC` = '31'
+ORDER BY f.`Enrollment (K-12)` DESC;",,
+47,moderate,True,True,True,True,same_correct,What is the monthly average number of schools that opened in Alameda County under the jurisdiction of the Elementary School District in 1980?,"SELECT COUNT(*) / 12.0 AS monthly_avg
+FROM schools
+WHERE County = 'Alameda'
+  AND DOC = '52'
+  AND strftime('%Y', OpenDate) = '1980';","SELECT COUNT(*) / 12.0 AS monthly_avg
+FROM schools
+WHERE County = 'Alameda'
+  AND DOC = '52'
+  AND strftime('%Y', OpenDate) = '1980';",,
+48,moderate,True,True,True,True,same_correct,What is the ratio of merged Unified School District schools to merged Elementary School District schools in Orange County?,"SELECT 
+    CAST(SUM(CASE WHEN s.DOC = '54' THEN 1 ELSE 0 END) AS REAL) / 
+    NULLIF(SUM(CASE WHEN s.DOC = '52' THEN 1 ELSE 0 END), 0) AS ratio
+FROM schools s
+WHERE s.County = 'Orange' 
+  AND s.StatusType = 'Merged';","SELECT 
+    CAST(SUM(CASE WHEN s.DOC = '54' THEN 1 ELSE 0 END) AS REAL) / 
+    NULLIF(SUM(CASE WHEN s.DOC = '52' THEN 1 ELSE 0 END), 0) AS ratio
+FROM schools s
+WHERE s.County = 'Orange' 
+  AND s.StatusType = 'Merged';",,
+49,moderate,False,False,True,True,same_wrong,Which different county has the most number of closed schools? Please provide the name of each school as well as the closure date.,"SELECT s.County, s.School, s.ClosedDate
+FROM schools s
+WHERE s.StatusType = 'Closed'
+ORDER BY s.County;","SELECT s.County, s.School, s.ClosedDate
+FROM schools s
+WHERE s.StatusType = 'Closed'
+ORDER BY s.County;",,

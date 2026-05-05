@@ -1,3 +1,4 @@
 datasets
 requests
 sentence-transformers
+openai

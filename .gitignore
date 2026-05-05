@@ -15,5 +15,6 @@ __pycache__/
 outputs/
 logs/
 checkpoints/
+cache/
 # results/
 results/*.jsonl
