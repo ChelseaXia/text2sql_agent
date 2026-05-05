@@ -192,7 +192,15 @@ For a longer write-up, see [docs/error_analysis.md](docs/error_analysis.md).
 
 ## Project Structure
 
-Core code lives under `src/text2sql/`:
+The repository is organized as:
+
+- `src/text2sql/` = active package code
+- `scripts/` = runnable CLI entrypoints
+- `docs/` = final writeups
+- `results/` = selected frozen result summaries
+- `archive/` = legacy scripts and full intermediate artifacts
+
+Active package modules under `src/text2sql/`:
 
 - `text2sql/config.py`
 - `text2sql/data.py`
@@ -218,4 +226,4 @@ PYTHONPATH=src python3 scripts/run_agent.py --db-id california_schools --limit 5
 PYTHONPATH=src python3 scripts/compare_controlled_with_day5.py
 ```
 
-Legacy `src/*.py` experiment files are kept as thin wrappers so older commands still resolve.
+Legacy day-based `src/*.py` entrypoints are preserved under `archive/legacy_src/`.
