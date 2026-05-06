@@ -6,14 +6,16 @@ import re
 from pathlib import Path
 
 from text2sql.config import RESULTS_DIR
-from text2sql.data import load_bird_dev
+from text2sql.data import resolve_eval_samples
 from text2sql.db import run_sql, same_result
+from text2sql.eval import save_metrics
 from text2sql.llm import call_llm
 from text2sql.prompts.generation import build_naive_prompt
 from text2sql.schema.parser import get_full_schema_text
 
 METHOD_NAME = "naive_full_schema"
 DEFAULT_OUTPUT_PATH = RESULTS_DIR / "day2_naive_predictions.jsonl"
+DEFAULT_METRICS_PATH = RESULTS_DIR / "day2_naive_metrics.json"
 
 
 def extract_sql(raw_response):
@@ -28,16 +30,17 @@ def extract_sql(raw_response):
     return text.rstrip("`").strip()
 
 
-def iter_target_samples(db_id, limit):
-    return load_bird_dev(limit=limit, db_id=db_id)
+def iter_target_samples(db_id, limit, manifest_path=None):
+    return resolve_eval_samples(limit=limit, db_id=db_id, manifest_path=manifest_path)
 
 
-def run_naive_full_schema(samples, output_path):
+def run_naive_full_schema(samples, output_path, metrics_path=None):
     RESULTS_DIR.mkdir(parents=True, exist_ok=True)
     schema_cache = {}
     total = 0
     ex_count = 0
     pred_success_count = 0
+    records = []
 
     with output_path.open("w", encoding="utf-8") as file:
         for sample in samples:
@@ -63,6 +66,7 @@ def run_naive_full_schema(samples, output_path):
             }
             gold_result = run_sql(sample["gold_sql"], db_path)
             ex = bool(pred_result["success"] and gold_result["success"] and same_result(pred_result["rows"], gold_result["rows"]))
+            failure_reason = None if pred_result["success"] else (llm_error or pred_result["error"] or "Unknown prediction failure")
 
             if pred_result["success"]:
                 pred_success_count += 1
@@ -72,13 +76,20 @@ def run_naive_full_schema(samples, output_path):
             record = {
                 "sample_id": sample["sample_id"],
                 "db_id": sample["db_id"],
+                "db_path": db_path,
                 "difficulty": sample["difficulty"],
                 "question": sample["question"],
                 "evidence": sample["evidence"],
                 "gold_sql": sample["gold_sql"],
                 "pred_sql": pred_sql,
+                "predicted_sql": pred_sql,
+                "final_sql": pred_sql,
                 "pred_success": pred_result["success"],
+                "is_executable": pred_result["success"],
                 "gold_success": gold_result["success"],
+                "error": failure_reason,
+                "failure_reason": failure_reason,
+                "llm_error": llm_error,
                 "pred_error": llm_error or pred_result["error"],
                 "gold_error": gold_result["error"],
                 "pred_row_count": len(pred_result["rows"]),
@@ -86,19 +97,25 @@ def run_naive_full_schema(samples, output_path):
                 "pred_rows_preview": pred_result["rows"][:5],
                 "gold_rows_preview": gold_result["rows"][:5],
                 "ex": ex,
+                "is_correct": ex,
                 "raw_response": raw_response,
                 "method": METHOD_NAME,
             }
             file.write(json.dumps(record, ensure_ascii=False) + "\n")
             file.flush()
+            records.append(record)
             print(f"{total}: sample_id={sample['sample_id']} pred_success={record['pred_success']} ex={ex}")
 
-    return {
+    summary = {
         "total": total,
         "pred_success_count": pred_success_count,
         "ex_count": ex_count,
         "output_path": str(output_path),
     }
+    if metrics_path is not None:
+        save_metrics(records, metrics_path)
+        summary["metrics_path"] = str(metrics_path)
+    return summary
 
 
 run_naive_baseline = run_naive_full_schema
@@ -106,16 +123,22 @@ run_naive_baseline = run_naive_full_schema
 
 def parse_args():
     parser = argparse.ArgumentParser(description="Run naive full-schema baseline.")
-    parser.add_argument("--db-id", default="california_schools")
-    parser.add_argument("--limit", type=int, default=50)
+    parser.add_argument("--db-id")
+    parser.add_argument("--limit", type=int)
+    parser.add_argument("--manifest", type=Path)
     parser.add_argument("--output", type=Path, default=DEFAULT_OUTPUT_PATH)
+    parser.add_argument("--metrics-output", type=Path, default=DEFAULT_METRICS_PATH)
     return parser.parse_args()
 
 
 def main():
     args = parse_args()
-    samples = iter_target_samples(db_id=args.db_id, limit=args.limit)
-    summary = run_naive_full_schema(samples=samples, output_path=args.output)
+    if args.manifest is None and args.db_id is None:
+        args.db_id = "california_schools"
+    if args.manifest is None and args.limit is None:
+        args.limit = 50
+    samples = iter_target_samples(db_id=args.db_id, limit=args.limit, manifest_path=args.manifest)
+    summary = run_naive_full_schema(samples=samples, output_path=args.output, metrics_path=args.metrics_output)
     print(json.dumps(summary, ensure_ascii=False, indent=2))
 
 

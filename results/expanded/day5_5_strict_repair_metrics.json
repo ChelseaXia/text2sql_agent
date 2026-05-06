@@ -1,0 +1,38 @@
+{
+  "total": 1534,
+  "ex_count": 866,
+  "vsr_count": 1531,
+  "gold_success_count": 1529,
+  "EX": 0.5645371577574967,
+  "VSR": 0.9980443285528031,
+  "difficulty_breakdown": {
+    "simple": {
+      "sample_count": 860,
+      "vsr_count": 860,
+      "ex_count": 568,
+      "VSR": 1.0,
+      "EX": 0.6604651162790698
+    },
+    "moderate": {
+      "sample_count": 443,
+      "vsr_count": 442,
+      "ex_count": 240,
+      "VSR": 0.9977426636568849,
+      "EX": 0.5417607223476298
+    },
+    "challenging": {
+      "sample_count": 231,
+      "vsr_count": 229,
+      "ex_count": 58,
+      "VSR": 0.9913419913419913,
+      "EX": 0.2510822510822511
+    }
+  },
+  "finish_count": 0,
+  "no_finish_count": 0,
+  "finish_rejected_count": 0,
+  "executed_but_not_finished_count": 0,
+  "repair_attempt_count": 43,
+  "repair_success_count": 37,
+  "avg_repair_rounds": 1.075
+}

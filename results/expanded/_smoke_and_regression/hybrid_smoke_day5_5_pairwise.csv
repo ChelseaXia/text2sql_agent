@@ -1,0 +1,123 @@
+sample_id,difficulty,day3_ex,strict_repair_ex,day3_pred_success,strict_final_success,change_type,question,initial_pred_sql,final_pred_sql,initial_error,final_error
+98,moderate,True,True,True,True,same_correct,"Among the accounts who have approved loan date in 1997, list out the accounts that have the lowest approved amount and choose weekly issuance statement.","SELECT a.account_id
+FROM account a
+JOIN loan l ON a.account_id = l.account_id
+WHERE strftime('%Y', l.date) = '1997'
+  AND a.frequency = 'POPLATEK TYDNE'
+ORDER BY l.amount ASC
+LIMIT 1;","SELECT a.account_id
+FROM account a
+JOIN loan l ON a.account_id = l.account_id
+WHERE strftime('%Y', l.date) = '1997'
+  AND a.frequency = 'POPLATEK TYDNE'
+ORDER BY l.amount ASC
+LIMIT 1;",,
+1373,simple,True,True,True,True,same_correct,How many of the members' hometowns are from Maryland state?,"SELECT COUNT(DISTINCT m.member_id)
+FROM member m
+JOIN zip_code z ON m.zip = z.zip_code
+WHERE z.state = 'Maryland';","SELECT COUNT(DISTINCT m.member_id)
+FROM member m
+JOIN zip_code z ON m.zip = z.zip_code
+WHERE z.state = 'Maryland';",,
+597,simple,True,True,True,True,same_correct,How many users from India have the teacher badges?,"SELECT COUNT(DISTINCT u.Id)
+FROM users u
+JOIN badges b ON u.Id = b.UserId
+WHERE u.Location = 'India'
+  AND b.Name = 'Teacher';","SELECT COUNT(DISTINCT u.Id)
+FROM users u
+JOIN badges b ON u.Id = b.UserId
+WHERE u.Location = 'India'
+  AND b.Name = 'Teacher';",,
+45,challenging,False,False,False,True,same_wrong,"For schools administered by Ricci Ulrich, provide a comprehensive performance analysis including their SAT scores in all three sections, total SAT score, rankings compared to other schools, FRPM eligibility rate, test participation rate, and how their writing scores compare to their district average.","SELECT 
+    s.sname AS School_Name,
+    sa.AvgScrRead AS Reading_Score,
+    sa.AvgScrMath AS Math_Score,
+    sa.AvgScrWrite AS Writing_Score,
+    (sa.AvgScrRead + sa.AvgScrMath + sa.AvgScrWrite) AS Total_SAT_Score,
+    RANK() OVER (ORDER BY (sa.AvgScrRead + sa.AvgScrMath + sa.AvgScrWrite) DESC) AS Overall_Rank,
+    f.`Percent (%) Eligible FRPM (K-12)` AS FRPM_Eligibility_Rate,
+    ROUND((CAST(sa.NumTstTakr AS REAL) / f.`Enrollment (K-12)`) * 100, 2) AS Test_Participation_Rate,
+    sa.AvgScrWrite - AVG(sa2.AvgScrWrite) OVER (PARTITION BY s.District) AS Writing_Score_vs_District_Avg
+FROM schools s
+JOIN satscores sa ON s.CDSCode = sa.cds
+JOIN frpm f ON s.CDSCode = f.CDSCode
+LEFT JOIN satscores sa2 ON s.District = sa2.dname
+WHERE s.AdmLName1 = 'Ulrich' AND s.AdmFName1 = 'Ricci';","SELECT 
+    sa.sname AS School_Name,
+    sa.AvgScrRead AS Reading_Score,
+    sa.AvgScrMath AS Math_Score,
+    sa.AvgScrWrite AS Writing_Score,
+    (sa.AvgScrRead + sa.AvgScrMath + sa.AvgScrWrite) AS Total_SAT_Score,
+    RANK() OVER (ORDER BY (sa.AvgScrRead + sa.AvgScrMath + sa.AvgScrWrite) DESC) AS Overall_Rank,
+    f.`Percent (%) Eligible FRPM (K-12)` AS FRPM_Eligibility_Rate,
+    ROUND((CAST(sa.NumTstTakr AS REAL) / f.`Enrollment (K-12)`) * 100, 2) AS Test_Participation_Rate,
+    sa.AvgScrWrite - AVG(sa2.AvgScrWrite) OVER (PARTITION BY s.District) AS Writing_Score_vs_District_Avg
+FROM schools s
+JOIN satscores sa ON s.CDSCode = sa.cds
+JOIN frpm f ON s.CDSCode = f.CDSCode
+LEFT JOIN satscores sa2 ON s.District = sa2.dname
+WHERE s.AdmLName1 = 'Ulrich' AND s.AdmFName1 = 'Ricci';",no such column: s.sname,
+596,simple,True,True,True,True,same_correct,Which user has posted the most comments? List out all the user's badge.,"SELECT b.Name
+FROM badges b
+WHERE b.UserId = (
+    SELECT c.UserId
+    FROM comments c
+    GROUP BY c.UserId
+    ORDER BY COUNT(c.Id) DESC
+    LIMIT 1
+);","SELECT b.Name
+FROM badges b
+WHERE b.UserId = (
+    SELECT c.UserId
+    FROM comments c
+    GROUP BY c.UserId
+    ORDER BY COUNT(c.Id) DESC
+    LIMIT 1
+);",,
+444,simple,False,False,True,True,same_wrong,Name the foreign name of the card that has boros watermark? List out the type of this card.,"SELECT f.name AS foreign_name, f.type AS card_type
+FROM foreign_data f
+JOIN cards c ON f.uuid = c.uuid
+WHERE c.watermark = 'boros';","SELECT f.name AS foreign_name, f.type AS card_type
+FROM foreign_data f
+JOIN cards c ON f.uuid = c.uuid
+WHERE c.watermark = 'boros';",,
+288,simple,True,True,True,True,same_correct,Identify whether the molecule that contains atom TR001_1 is carcinogenic.,"SELECT m.label 
+FROM molecule m 
+JOIN atom a ON m.molecule_id = a.molecule_id 
+WHERE a.atom_id = 'TR001_1';","SELECT m.label 
+FROM molecule m 
+JOIN atom a ON m.molecule_id = a.molecule_id 
+WHERE a.atom_id = 'TR001_1';",,
+999,simple,True,True,True,True,same_correct,What is the name of the race in which a driver recorded the fastest lap time?,"SELECT r.name
+FROM races r
+JOIN results res ON r.raceId = res.raceId
+JOIN lapTimes lt ON r.raceId = lt.raceId AND res.driverId = lt.driverId
+ORDER BY lt.milliseconds ASC
+LIMIT 1;","SELECT r.name
+FROM races r
+JOIN results res ON r.raceId = res.raceId
+JOIN lapTimes lt ON r.raceId = lt.raceId AND res.driverId = lt.driverId
+ORDER BY lt.milliseconds ASC
+LIMIT 1;",,
+321,simple,True,True,True,True,same_correct,"What is the molecule of atom id ""TR000_2"" and atom id 2 ""TR000_4""?","SELECT a.molecule_id
+FROM atom a
+WHERE a.atom_id = 'TR000_2'
+INTERSECT
+SELECT a2.molecule_id
+FROM atom a2
+WHERE a2.atom_id = 'TR000_4';","SELECT a.molecule_id
+FROM atom a
+WHERE a.atom_id = 'TR000_2'
+INTERSECT
+SELECT a2.molecule_id
+FROM atom a2
+WHERE a2.atom_id = 'TR000_4';",,
+580,simple,False,False,True,True,same_wrong,Name 10 users with the badge name 'Necromancer.',"SELECT DISTINCT u.DisplayName
+FROM users u
+JOIN badges b ON u.Id = b.UserId
+WHERE b.Name = 'Necromancer'
+LIMIT 10;","SELECT DISTINCT u.DisplayName
+FROM users u
+JOIN badges b ON u.Id = b.UserId
+WHERE b.Name = 'Necromancer'
+LIMIT 10;",,

@@ -1,0 +1,35 @@
+{
+  "total": 60,
+  "ex_count": 28,
+  "vsr_count": 59,
+  "gold_success_count": 60,
+  "EX": 0.4666666666666667,
+  "VSR": 0.9833333333333333,
+  "difficulty_breakdown": {
+    "simple": {
+      "sample_count": 41,
+      "vsr_count": 41,
+      "ex_count": 25,
+      "VSR": 1.0,
+      "EX": 0.6097560975609756
+    },
+    "moderate": {
+      "sample_count": 9,
+      "vsr_count": 8,
+      "ex_count": 1,
+      "VSR": 0.8888888888888888,
+      "EX": 0.1111111111111111
+    },
+    "challenging": {
+      "sample_count": 10,
+      "vsr_count": 10,
+      "ex_count": 2,
+      "VSR": 1.0,
+      "EX": 0.2
+    }
+  },
+  "finish_count": 0,
+  "no_finish_count": 0,
+  "finish_rejected_count": 0,
+  "executed_but_not_finished_count": 0
+}

@@ -2,7 +2,7 @@
 
 ## TL;DR
 
-This repository is a compact Text2SQL systems project on a fixed 50-sample subset of BIRD dev `california_schools`. The core result is not just `EX=36%` in isolation, but a staged pipeline improvement from `26%` to `34%` to `36%`, a `38.5%` relative EX gain over the naive baseline, and a `VSR` lift from `88%` to `100%`.
+This repository is a compact Text2SQL systems project centered on a fixed compact development subset of BIRD dev `california_schools`, with an additional full frozen-manifest comparison across `1534` BIRD dev samples. On the compact subset, the main pipeline improves from `26%` to `34%` to `36%` EX, a `38.5%` relative EX gain over the baseline, and raises `VSR` from `86%` to `100%`.
 
 The repo also includes an agent-control ablation: a controlled execution-repair graph reaches `EX=32%`, while an autonomous ReAct agent drops to `EX=12%`. The main takeaway is that when task structure is known, explicit control beats free-form tool use in this setup.
 
@@ -46,17 +46,31 @@ flowchart TB
 
 ## Main Results
 
-### Pipeline progression
+### Compact development subset
 
 | Method | EX | VSR | Takeaway |
 | --- | ---: | ---: | --- |
-| Day2 naive full schema | 26% | 86% | weak baseline |
-| Day3 schema-linked + promptfix | 34% | 88% | schema retrieval helps semantics |
-| Day5.5 strict execution repair | 36% | 100% | best overall pipeline |
+| Full-schema direct prompting baseline | 26% | 86% | weak baseline |
+| Schema-linked prompting + prompt constraints | 34% | 88% | schema retrieval helps semantics |
+| Schema-linked execution-repair pipeline | 36% | 100% | best overall pipeline |
 
 - EX improves from `26%` to `34%` to `36%`.
 - Going from `26%` to `36%` is a `38.5%` relative EX improvement over the naive baseline.
 - VSR improves from `88%` to `100%` once strict repair is added.
+
+### Expanded full-dev frozen manifest
+
+| Method | Samples | EX | VSR | Main Role |
+| --- | ---: | ---: | ---: | --- |
+| Full-schema direct prompting | 1534 | 51.11% | 95.63% | baseline |
+| Schema-linked prompting + constraints | 1534 | 55.41% | 97.39% | schema grounding |
+| Schema-linked execution-repair pipeline | 1534 | 56.45% | 99.80% | best overall |
+| DDL-style schema serialization | 1534 | 55.93% | 97.78% | schema format ablation |
+
+- Schema linking improves EX by `+4.30` percentage points over full-schema prompting on the full frozen manifest.
+- Execution-guided repair raises VSR to `99.80%` and remains the best overall configuration.
+- DDL-style serialization is slightly better than schema-linked prompting alone on full eval, but still below execution repair.
+- The detailed expanded write-up is in [docs/expanded_evaluation.md](/Users/bytedance/text2sql_agent/docs/expanded_evaluation.md:1).
 
 ### Agent ablation
 
@@ -72,12 +86,12 @@ flowchart TB
 
 | Method | EX | VSR | Role |
 | --- | ---: | ---: | --- |
-| Day2 naive full schema | 26% | 86% | baseline |
-| Day3 schema-linked + promptfix | 34% | 88% | improved baseline |
-| Day5.5 strict execution repair | 36% | 100% | main result |
+| Full-schema direct prompting baseline | 26% | 86% | baseline |
+| Schema-linked prompting + prompt constraints | 34% | 88% | improved baseline |
+| Schema-linked execution-repair pipeline | 36% | 100% | main result |
 | Controlled agent trace implementation | 32% | 98% | controlled graph |
 | Few-shot retrieval | 28% | 100% | negative ablation |
-| DDL schema serialization | 28% | 82% | negative ablation |
+| DDL-style schema serialization ablation | 28% | 82% | negative ablation |
 | Autonomous ReAct agent | 12% | 88% | negative ablation |
 
 ## Method
@@ -103,8 +117,8 @@ This is intentionally closer to an enterprise BI workflow than to a pure prompt-
 
 All reported numbers in the repo are based on:
 
-- BIRD dev `california_schools`
-- a fixed `50`-sample subset
+- compact development subset: BIRD dev `california_schools`, fixed `50` samples
+- expanded evaluation: full BIRD dev frozen manifest, fixed `1534` samples
 - saved result artifacts already committed under `results/`
 
 Difficulty distribution of the subset:
@@ -119,6 +133,17 @@ Metrics:
 - `VSR`: valid SQL rate
 
 This project does not claim full BIRD benchmark coverage or leaderboard-valid results.
+
+## Internal Experiment Aliases
+
+Historical scripts, file names, and result artifacts still use internal experiment aliases:
+
+- `Day2` = Full-schema direct prompting baseline
+- `Day3` = Schema-linked prompting + prompt constraints
+- `Day5.5` = Schema-linked execution-repair pipeline
+- `Day6` = DDL-style schema serialization ablation
+
+These labels are retained for experiment continuity only. The public-facing method names in this README and the docs are the canonical names.
 
 ## Model Settings
 
@@ -177,7 +202,7 @@ For the cleanup note, see [docs/archive_plan.md](/Users/bytedance/text2sql_agent
 
 ## Notes On Interpretation
 
-- Day5.5 strict execution repair is the canonical main result.
+- The schema-linked execution-repair pipeline is the canonical main result.
 - The controlled agent is a trace-oriented near-match implementation, not the canonical metric run.
 - The autonomous ReAct agent is intentionally kept as a negative ablation.
 

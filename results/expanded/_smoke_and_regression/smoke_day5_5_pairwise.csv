@@ -1,0 +1,92 @@
+sample_id,difficulty,day3_ex,strict_repair_ex,day3_pred_success,strict_final_success,change_type,question,initial_pred_sql,final_pred_sql,initial_error,final_error
+98,moderate,False,False,True,True,same_wrong,"Among the accounts who have approved loan date in 1997, list out the accounts that have the lowest approved amount and choose weekly issuance statement.","SELECT a.account_id
+FROM account a
+JOIN loan l ON a.account_id = l.account_id
+WHERE strftime('%Y', l.date) = '1997'
+  AND a.frequency = 'POPLATEK TYDNE'
+  AND l.amount = (
+    SELECT MIN(l2.amount)
+    FROM loan l2
+    WHERE strftime('%Y', l2.date) = '1997'
+  );","SELECT a.account_id
+FROM account a
+JOIN loan l ON a.account_id = l.account_id
+WHERE strftime('%Y', l.date) = '1997'
+  AND a.frequency = 'POPLATEK TYDNE'
+  AND l.amount = (
+    SELECT MIN(l2.amount)
+    FROM loan l2
+    WHERE strftime('%Y', l2.date) = '1997'
+  );",,
+1373,simple,False,True,False,True,improved,How many of the members' hometowns are from Maryland state?,"SELECT COUNT(*) 
+FROM member 
+JOIN zip_code ON member.hometown_zip = zip_code.zip_code 
+WHERE zip_code.state = 'Maryland';","SELECT COUNT(*) 
+FROM member 
+JOIN zip_code ON member.zip = zip_code.zip_code 
+WHERE zip_code.state = 'Maryland';",no such column: member.hometown_zip,
+597,simple,True,True,True,True,same_correct,How many users from India have the teacher badges?,"SELECT COUNT(DISTINCT u.Id)
+FROM users u
+JOIN badges b ON u.Id = b.UserId
+WHERE u.Location = 'India'
+  AND b.Name = 'Teacher';","SELECT COUNT(DISTINCT u.Id)
+FROM users u
+JOIN badges b ON u.Id = b.UserId
+WHERE u.Location = 'India'
+  AND b.Name = 'Teacher';",,
+45,challenging,False,False,False,True,same_wrong,"For schools administered by Ricci Ulrich, provide a comprehensive performance analysis including their SAT scores in all three sections, total SAT score, rankings compared to other schools, FRPM eligibility rate, test participation rate, and how their writing scores compare to their district average.","SELECT 
+    s.sname AS School_Name,
+    sat.AvgScrRead,
+    sat.AvgScrMath,
+    sat.AvgScrWrite,
+    (sat.AvgScrRead + sat.AvgScrMath + sat.AvgScrWrite) AS Total_SAT_Score,
+    RANK() OVER (ORDER BY (sat.AvgScrRead + sat.AvgScrMath + sat.AvgScrWrite) DESC) AS Overall_Rank,
+    RANK() OVER (ORDER BY sat.AvgScrRead DESC) AS Reading_Rank,
+    RANK() OVER (ORDER BY sat.AvgScrMath DESC) AS Math_Rank,
+    RANK() OVER (ORDER BY sat.AvgScrWrite DESC) AS Writing_Rank,
+    f.`Percent (%) Eligible FRPM (K-12)` AS FRPM_Eligibility_Rate,
+    ROUND((sat.NumTstTakr * 100.0 / f.`Enrollment (K-12)`), 2) AS Test_Participation_Rate,
+    sat.AvgScrWrite - AVG(sat.AvgScrWrite) OVER (PARTITION BY s.District) AS Writing_Score_vs_District_Avg
+FROM schools s
+JOIN satscores sat ON s.CDSCode = sat.cds
+JOIN frpm f ON s.CDSCode = f.CDSCode
+WHERE s.AdmLName1 = 'Ulrich' AND s.AdmFName1 = 'Ricci'
+   OR s.AdmLName2 = 'Ulrich' AND s.AdmFName2 = 'Ricci'
+   OR s.AdmLName3 = 'Ulrich' AND s.AdmFName3 = 'Ricci';","SELECT 
+    sat.sname AS School_Name,
+    sat.AvgScrRead,
+    sat.AvgScrMath,
+    sat.AvgScrWrite,
+    (sat.AvgScrRead + sat.AvgScrMath + sat.AvgScrWrite) AS Total_SAT_Score,
+    RANK() OVER (ORDER BY (sat.AvgScrRead + sat.AvgScrMath + sat.AvgScrWrite) DESC) AS Overall_Rank,
+    RANK() OVER (ORDER BY sat.AvgScrRead DESC) AS Reading_Rank,
+    RANK() OVER (ORDER BY sat.AvgScrMath DESC) AS Math_Rank,
+    RANK() OVER (ORDER BY sat.AvgScrWrite DESC) AS Writing_Rank,
+    f.`Percent (%) Eligible FRPM (K-12)` AS FRPM_Eligibility_Rate,
+    ROUND((sat.NumTstTakr * 100.0 / f.`Enrollment (K-12)`), 2) AS Test_Participation_Rate,
+    sat.AvgScrWrite - AVG(sat.AvgScrWrite) OVER (PARTITION BY s.District) AS Writing_Score_vs_District_Avg
+FROM schools s
+JOIN satscores sat ON s.CDSCode = sat.cds
+JOIN frpm f ON s.CDSCode = f.CDSCode
+WHERE s.AdmLName1 = 'Ulrich' AND s.AdmFName1 = 'Ricci'
+   OR s.AdmLName2 = 'Ulrich' AND s.AdmFName2 = 'Ricci'
+   OR s.AdmLName3 = 'Ulrich' AND s.AdmFName3 = 'Ricci';",no such column: s.sname,
+596,simple,False,False,True,True,same_wrong,Which user has posted the most comments? List out all the user's badge.,"SELECT u.DisplayName, b.Name
+FROM users u
+JOIN (
+    SELECT UserId, COUNT(*) AS cnt
+    FROM comments
+    GROUP BY UserId
+    ORDER BY cnt DESC
+    LIMIT 1
+) top ON u.Id = top.UserId
+JOIN badges b ON b.UserId = u.Id;","SELECT u.DisplayName, b.Name
+FROM users u
+JOIN (
+    SELECT UserId, COUNT(*) AS cnt
+    FROM comments
+    GROUP BY UserId
+    ORDER BY cnt DESC
+    LIMIT 1
+) top ON u.Id = top.UserId
+JOIN badges b ON b.UserId = u.Id;",,

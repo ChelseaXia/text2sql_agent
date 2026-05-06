@@ -1,0 +1,97 @@
+{
+  "total": 5,
+  "ex_count": 2,
+  "vsr_count": 5,
+  "gold_success_count": 5,
+  "EX": 0.4,
+  "VSR": 1.0,
+  "difficulty_breakdown": {
+    "simple": {
+      "sample_count": 3,
+      "vsr_count": 3,
+      "ex_count": 1,
+      "VSR": 1.0,
+      "EX": 0.3333333333333333
+    },
+    "moderate": {
+      "sample_count": 1,
+      "vsr_count": 1,
+      "ex_count": 1,
+      "VSR": 1.0,
+      "EX": 1.0
+    },
+    "challenging": {
+      "sample_count": 1,
+      "vsr_count": 1,
+      "ex_count": 0,
+      "VSR": 1.0,
+      "EX": 0.0
+    }
+  },
+  "finish_count": 0,
+  "no_finish_count": 0,
+  "finish_rejected_count": 0,
+  "executed_but_not_finished_count": 0,
+  "comparison_with_day2": {
+    "naive_full_schema": {
+      "total": 50,
+      "VSR": 0.86,
+      "EX": 0.26,
+      "difficulty_breakdown": {
+        "simple": {
+          "sample_count": 15,
+          "vsr_count": 14,
+          "ex_count": 9,
+          "VSR": 0.9333333333333333,
+          "EX": 0.6
+        },
+        "moderate": {
+          "sample_count": 16,
+          "vsr_count": 16,
+          "ex_count": 4,
+          "VSR": 1.0,
+          "EX": 0.25
+        },
+        "challenging": {
+          "sample_count": 19,
+          "vsr_count": 13,
+          "ex_count": 0,
+          "VSR": 0.6842105263157895,
+          "EX": 0.0
+        }
+      }
+    },
+    "schema_linked_promptfix": {
+      "total": 5,
+      "VSR": 1.0,
+      "EX": 0.4,
+      "difficulty_breakdown": {
+        "simple": {
+          "sample_count": 3,
+          "vsr_count": 3,
+          "ex_count": 1,
+          "VSR": 1.0,
+          "EX": 0.3333333333333333
+        },
+        "moderate": {
+          "sample_count": 1,
+          "vsr_count": 1,
+          "ex_count": 1,
+          "VSR": 1.0,
+          "EX": 1.0
+        },
+        "challenging": {
+          "sample_count": 1,
+          "vsr_count": 1,
+          "ex_count": 0,
+          "VSR": 1.0,
+          "EX": 0.0
+        }
+      }
+    },
+    "delta": {
+      "VSR": 0.14,
+      "EX": 0.14
+    }
+  }
+}

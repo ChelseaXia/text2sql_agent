@@ -1,0 +1,1409 @@
+{
+  "total_expected_samples": 1534,
+  "methods": {
+    "day2": {
+      "path": "/Users/bytedance/text2sql_agent/results/expanded/day2_naive_predictions.jsonl",
+      "total": 1534,
+      "nonempty_sql_count": 108,
+      "nonempty_sql_rate": 0.07040417209908735,
+      "is_executable_count": 99,
+      "VSR": 0.06453715775749674,
+      "is_correct_count": 40,
+      "EX": 0.02607561929595828,
+      "top_error_counts": [
+        {
+          "value": "Missing DeepSeek API key. Set DEEPSEEK_API_KEY in the environment.",
+          "count": 1426
+        },
+        {
+          "value": "no such column: f.Enrollment",
+          "count": 6
+        },
+        {
+          "value": "SQL execution timed out after 5s",
+          "count": 1
+        },
+        {
+          "value": "no such column: s.sname",
+          "count": 1
+        },
+        {
+          "value": "no such function: YEAR",
+          "count": 1
+        }
+      ],
+      "top_failure_reason_counts": [
+        {
+          "value": "Missing DeepSeek API key. Set DEEPSEEK_API_KEY in the environment.",
+          "count": 1426
+        },
+        {
+          "value": "no such column: f.Enrollment",
+          "count": 6
+        },
+        {
+          "value": "SQL execution timed out after 5s",
+          "count": 1
+        },
+        {
+          "value": "no such column: s.sname",
+          "count": 1
+        },
+        {
+          "value": "no such function: YEAR",
+          "count": 1
+        }
+      ],
+      "top_llm_error_counts": [
+        {
+          "value": "Missing DeepSeek API key. Set DEEPSEEK_API_KEY in the environment.",
+          "count": 1426
+        }
+      ],
+      "failure_class_counts": {
+        "executable_but_incorrect": 59,
+        "execution_error": 8,
+        "correct": 40,
+        "api_or_llm_failure": 1427
+      },
+      "by_db_id": {
+        "california_schools": {
+          "total": 89,
+          "nonempty_sql_count": 52,
+          "is_executable_count": 44,
+          "is_correct_count": 12,
+          "VSR": 0.4943820224719101,
+          "EX": 0.1348314606741573
+        },
+        "card_games": {
+          "total": 191,
+          "nonempty_sql_count": 7,
+          "is_executable_count": 7,
+          "is_correct_count": 4,
+          "VSR": 0.03664921465968586,
+          "EX": 0.020942408376963352
+        },
+        "codebase_community": {
+          "total": 186,
+          "nonempty_sql_count": 10,
+          "is_executable_count": 10,
+          "is_correct_count": 8,
+          "VSR": 0.053763440860215055,
+          "EX": 0.043010752688172046
+        },
+        "debit_card_specializing": {
+          "total": 64,
+          "nonempty_sql_count": 6,
+          "is_executable_count": 6,
+          "is_correct_count": 3,
+          "VSR": 0.09375,
+          "EX": 0.046875
+        },
+        "european_football_2": {
+          "total": 129,
+          "nonempty_sql_count": 2,
+          "is_executable_count": 2,
+          "is_correct_count": 1,
+          "VSR": 0.015503875968992248,
+          "EX": 0.007751937984496124
+        },
+        "financial": {
+          "total": 106,
+          "nonempty_sql_count": 5,
+          "is_executable_count": 5,
+          "is_correct_count": 1,
+          "VSR": 0.04716981132075472,
+          "EX": 0.009433962264150943
+        },
+        "formula_1": {
+          "total": 174,
+          "nonempty_sql_count": 7,
+          "is_executable_count": 7,
+          "is_correct_count": 2,
+          "VSR": 0.040229885057471264,
+          "EX": 0.011494252873563218
+        },
+        "student_club": {
+          "total": 158,
+          "nonempty_sql_count": 4,
+          "is_executable_count": 4,
+          "is_correct_count": 2,
+          "VSR": 0.02531645569620253,
+          "EX": 0.012658227848101266
+        },
+        "superhero": {
+          "total": 129,
+          "nonempty_sql_count": 4,
+          "is_executable_count": 4,
+          "is_correct_count": 3,
+          "VSR": 0.031007751937984496,
+          "EX": 0.023255813953488372
+        },
+        "thrombosis_prediction": {
+          "total": 163,
+          "nonempty_sql_count": 6,
+          "is_executable_count": 5,
+          "is_correct_count": 3,
+          "VSR": 0.03067484662576687,
+          "EX": 0.018404907975460124
+        },
+        "toxicology": {
+          "total": 145,
+          "nonempty_sql_count": 5,
+          "is_executable_count": 5,
+          "is_correct_count": 1,
+          "VSR": 0.034482758620689655,
+          "EX": 0.006896551724137931
+        }
+      },
+      "by_difficulty": {
+        "challenging": {
+          "total": 231,
+          "nonempty_sql_count": 27,
+          "is_executable_count": 20,
+          "is_correct_count": 2,
+          "VSR": 0.08658008658008658,
+          "EX": 0.008658008658008658
+        },
+        "moderate": {
+          "total": 443,
+          "nonempty_sql_count": 25,
+          "is_executable_count": 24,
+          "is_correct_count": 4,
+          "VSR": 0.05417607223476298,
+          "EX": 0.009029345372460496
+        },
+        "simple": {
+          "total": 860,
+          "nonempty_sql_count": 56,
+          "is_executable_count": 55,
+          "is_correct_count": 34,
+          "VSR": 0.06395348837209303,
+          "EX": 0.03953488372093023
+        }
+      },
+      "longest_non_executable_streak": {
+        "length": 103,
+        "line_start": 1030,
+        "line_end": 1132,
+        "sample_id_start": 1029,
+        "sample_id_end": 1131
+      },
+      "longest_api_failure_streak": {
+        "length": 103,
+        "line_start": 1030,
+        "line_end": 1132,
+        "sample_id_start": 1029,
+        "sample_id_end": 1131
+      },
+      "high_failure_windows": [
+        {
+          "line_start": 46,
+          "line_end": 65,
+          "sample_id_start": 45,
+          "sample_id_end": 64,
+          "non_executable_count": 15
+        },
+        {
+          "line_start": 47,
+          "line_end": 66,
+          "sample_id_start": 46,
+          "sample_id_end": 65,
+          "non_executable_count": 16
+        },
+        {
+          "line_start": 48,
+          "line_end": 67,
+          "sample_id_start": 47,
+          "sample_id_end": 66,
+          "non_executable_count": 17
+        },
+        {
+          "line_start": 49,
+          "line_end": 68,
+          "sample_id_start": 48,
+          "sample_id_end": 67,
+          "non_executable_count": 18
+        },
+        {
+          "line_start": 50,
+          "line_end": 69,
+          "sample_id_start": 49,
+          "sample_id_end": 68,
+          "non_executable_count": 18
+        },
+        {
+          "line_start": 51,
+          "line_end": 70,
+          "sample_id_start": 50,
+          "sample_id_end": 69,
+          "non_executable_count": 19
+        },
+        {
+          "line_start": 52,
+          "line_end": 71,
+          "sample_id_start": 51,
+          "sample_id_end": 70,
+          "non_executable_count": 19
+        },
+        {
+          "line_start": 53,
+          "line_end": 72,
+          "sample_id_start": 52,
+          "sample_id_end": 71,
+          "non_executable_count": 19
+        },
+        {
+          "line_start": 54,
+          "line_end": 73,
+          "sample_id_start": 53,
+          "sample_id_end": 72,
+          "non_executable_count": 19
+        },
+        {
+          "line_start": 55,
+          "line_end": 74,
+          "sample_id_start": 54,
+          "sample_id_end": 73,
+          "non_executable_count": 19
+        },
+        {
+          "line_start": 56,
+          "line_end": 75,
+          "sample_id_start": 55,
+          "sample_id_end": 74,
+          "non_executable_count": 19
+        },
+        {
+          "line_start": 57,
+          "line_end": 76,
+          "sample_id_start": 56,
+          "sample_id_end": 75,
+          "non_executable_count": 19
+        },
+        {
+          "line_start": 58,
+          "line_end": 77,
+          "sample_id_start": 57,
+          "sample_id_end": 76,
+          "non_executable_count": 19
+        },
+        {
+          "line_start": 59,
+          "line_end": 78,
+          "sample_id_start": 58,
+          "sample_id_end": 77,
+          "non_executable_count": 19
+        },
+        {
+          "line_start": 60,
+          "line_end": 79,
+          "sample_id_start": 59,
+          "sample_id_end": 78,
+          "non_executable_count": 19
+        },
+        {
+          "line_start": 61,
+          "line_end": 80,
+          "sample_id_start": 60,
+          "sample_id_end": 79,
+          "non_executable_count": 19
+        },
+        {
+          "line_start": 62,
+          "line_end": 81,
+          "sample_id_start": 61,
+          "sample_id_end": 80,
+          "non_executable_count": 19
+        },
+        {
+          "line_start": 63,
+          "line_end": 82,
+          "sample_id_start": 62,
+          "sample_id_end": 81,
+          "non_executable_count": 19
+        },
+        {
+          "line_start": 64,
+          "line_end": 83,
+          "sample_id_start": 63,
+          "sample_id_end": 82,
+          "non_executable_count": 19
+        },
+        {
+          "line_start": 65,
+          "line_end": 84,
+          "sample_id_start": 64,
+          "sample_id_end": 83,
+          "non_executable_count": 19
+        }
+      ]
+    },
+    "day3": {
+      "path": "/Users/bytedance/text2sql_agent/results/expanded/day3_schema_linked_predictions.jsonl",
+      "total": 1534,
+      "nonempty_sql_count": 108,
+      "nonempty_sql_rate": 0.07040417209908735,
+      "is_executable_count": 100,
+      "VSR": 0.0651890482398957,
+      "is_correct_count": 50,
+      "EX": 0.03259452411994785,
+      "top_error_counts": [
+        {
+          "value": "Missing DeepSeek API key. Set DEEPSEEK_API_KEY in the environment.",
+          "count": 1426
+        },
+        {
+          "value": "no such column: s.sname",
+          "count": 5
+        },
+        {
+          "value": "no such column: sc.Charter School (Y/N)",
+          "count": 1
+        },
+        {
+          "value": "DISTINCT aggregates must have exactly one argument",
+          "count": 1
+        },
+        {
+          "value": "no such function: YEAR",
+          "count": 1
+        }
+      ],
+      "top_failure_reason_counts": [
+        {
+          "value": "Missing DeepSeek API key. Set DEEPSEEK_API_KEY in the environment.",
+          "count": 1426
+        },
+        {
+          "value": "no such column: s.sname",
+          "count": 5
+        },
+        {
+          "value": "no such column: sc.Charter School (Y/N)",
+          "count": 1
+        },
+        {
+          "value": "DISTINCT aggregates must have exactly one argument",
+          "count": 1
+        },
+        {
+          "value": "no such function: YEAR",
+          "count": 1
+        }
+      ],
+      "top_llm_error_counts": [
+        {
+          "value": "Missing DeepSeek API key. Set DEEPSEEK_API_KEY in the environment.",
+          "count": 1426
+        }
+      ],
+      "failure_class_counts": {
+        "executable_but_incorrect": 50,
+        "correct": 50,
+        "execution_error": 7,
+        "api_or_llm_failure": 1426,
+        "non_executable_other": 1
+      },
+      "by_db_id": {
+        "california_schools": {
+          "total": 89,
+          "nonempty_sql_count": 52,
+          "is_executable_count": 46,
+          "is_correct_count": 17,
+          "VSR": 0.5168539325842697,
+          "EX": 0.19101123595505617
+        },
+        "card_games": {
+          "total": 191,
+          "nonempty_sql_count": 7,
+          "is_executable_count": 7,
+          "is_correct_count": 4,
+          "VSR": 0.03664921465968586,
+          "EX": 0.020942408376963352
+        },
+        "codebase_community": {
+          "total": 186,
+          "nonempty_sql_count": 10,
+          "is_executable_count": 10,
+          "is_correct_count": 7,
+          "VSR": 0.053763440860215055,
+          "EX": 0.03763440860215054
+        },
+        "debit_card_specializing": {
+          "total": 64,
+          "nonempty_sql_count": 6,
+          "is_executable_count": 6,
+          "is_correct_count": 3,
+          "VSR": 0.09375,
+          "EX": 0.046875
+        },
+        "european_football_2": {
+          "total": 129,
+          "nonempty_sql_count": 2,
+          "is_executable_count": 2,
+          "is_correct_count": 2,
+          "VSR": 0.015503875968992248,
+          "EX": 0.015503875968992248
+        },
+        "financial": {
+          "total": 106,
+          "nonempty_sql_count": 5,
+          "is_executable_count": 5,
+          "is_correct_count": 2,
+          "VSR": 0.04716981132075472,
+          "EX": 0.018867924528301886
+        },
+        "formula_1": {
+          "total": 174,
+          "nonempty_sql_count": 7,
+          "is_executable_count": 7,
+          "is_correct_count": 3,
+          "VSR": 0.040229885057471264,
+          "EX": 0.017241379310344827
+        },
+        "student_club": {
+          "total": 158,
+          "nonempty_sql_count": 4,
+          "is_executable_count": 4,
+          "is_correct_count": 3,
+          "VSR": 0.02531645569620253,
+          "EX": 0.0189873417721519
+        },
+        "superhero": {
+          "total": 129,
+          "nonempty_sql_count": 4,
+          "is_executable_count": 4,
+          "is_correct_count": 3,
+          "VSR": 0.031007751937984496,
+          "EX": 0.023255813953488372
+        },
+        "thrombosis_prediction": {
+          "total": 163,
+          "nonempty_sql_count": 6,
+          "is_executable_count": 5,
+          "is_correct_count": 4,
+          "VSR": 0.03067484662576687,
+          "EX": 0.024539877300613498
+        },
+        "toxicology": {
+          "total": 145,
+          "nonempty_sql_count": 5,
+          "is_executable_count": 4,
+          "is_correct_count": 2,
+          "VSR": 0.027586206896551724,
+          "EX": 0.013793103448275862
+        }
+      },
+      "by_difficulty": {
+        "challenging": {
+          "total": 231,
+          "nonempty_sql_count": 27,
+          "is_executable_count": 21,
+          "is_correct_count": 3,
+          "VSR": 0.09090909090909091,
+          "EX": 0.012987012987012988
+        },
+        "moderate": {
+          "total": 443,
+          "nonempty_sql_count": 25,
+          "is_executable_count": 24,
+          "is_correct_count": 11,
+          "VSR": 0.05417607223476298,
+          "EX": 0.024830699774266364
+        },
+        "simple": {
+          "total": 860,
+          "nonempty_sql_count": 56,
+          "is_executable_count": 55,
+          "is_correct_count": 36,
+          "VSR": 0.06395348837209303,
+          "EX": 0.04186046511627907
+        }
+      },
+      "longest_non_executable_streak": {
+        "length": 103,
+        "line_start": 1030,
+        "line_end": 1132,
+        "sample_id_start": 1029,
+        "sample_id_end": 1131
+      },
+      "longest_api_failure_streak": {
+        "length": 103,
+        "line_start": 1030,
+        "line_end": 1132,
+        "sample_id_start": 1029,
+        "sample_id_end": 1131
+      },
+      "high_failure_windows": [
+        {
+          "line_start": 45,
+          "line_end": 64,
+          "sample_id_start": 44,
+          "sample_id_end": 63,
+          "non_executable_count": 15
+        },
+        {
+          "line_start": 46,
+          "line_end": 65,
+          "sample_id_start": 45,
+          "sample_id_end": 64,
+          "non_executable_count": 16
+        },
+        {
+          "line_start": 47,
+          "line_end": 66,
+          "sample_id_start": 46,
+          "sample_id_end": 65,
+          "non_executable_count": 16
+        },
+        {
+          "line_start": 48,
+          "line_end": 67,
+          "sample_id_start": 47,
+          "sample_id_end": 66,
+          "non_executable_count": 17
+        },
+        {
+          "line_start": 49,
+          "line_end": 68,
+          "sample_id_start": 48,
+          "sample_id_end": 67,
+          "non_executable_count": 18
+        },
+        {
+          "line_start": 50,
+          "line_end": 69,
+          "sample_id_start": 49,
+          "sample_id_end": 68,
+          "non_executable_count": 18
+        },
+        {
+          "line_start": 51,
+          "line_end": 70,
+          "sample_id_start": 50,
+          "sample_id_end": 69,
+          "non_executable_count": 19
+        },
+        {
+          "line_start": 52,
+          "line_end": 71,
+          "sample_id_start": 51,
+          "sample_id_end": 70,
+          "non_executable_count": 19
+        },
+        {
+          "line_start": 53,
+          "line_end": 72,
+          "sample_id_start": 52,
+          "sample_id_end": 71,
+          "non_executable_count": 19
+        },
+        {
+          "line_start": 54,
+          "line_end": 73,
+          "sample_id_start": 53,
+          "sample_id_end": 72,
+          "non_executable_count": 19
+        },
+        {
+          "line_start": 55,
+          "line_end": 74,
+          "sample_id_start": 54,
+          "sample_id_end": 73,
+          "non_executable_count": 19
+        },
+        {
+          "line_start": 56,
+          "line_end": 75,
+          "sample_id_start": 55,
+          "sample_id_end": 74,
+          "non_executable_count": 19
+        },
+        {
+          "line_start": 57,
+          "line_end": 76,
+          "sample_id_start": 56,
+          "sample_id_end": 75,
+          "non_executable_count": 19
+        },
+        {
+          "line_start": 58,
+          "line_end": 77,
+          "sample_id_start": 57,
+          "sample_id_end": 76,
+          "non_executable_count": 19
+        },
+        {
+          "line_start": 59,
+          "line_end": 78,
+          "sample_id_start": 58,
+          "sample_id_end": 77,
+          "non_executable_count": 19
+        },
+        {
+          "line_start": 60,
+          "line_end": 79,
+          "sample_id_start": 59,
+          "sample_id_end": 78,
+          "non_executable_count": 19
+        },
+        {
+          "line_start": 61,
+          "line_end": 80,
+          "sample_id_start": 60,
+          "sample_id_end": 79,
+          "non_executable_count": 19
+        },
+        {
+          "line_start": 62,
+          "line_end": 81,
+          "sample_id_start": 61,
+          "sample_id_end": 80,
+          "non_executable_count": 19
+        },
+        {
+          "line_start": 63,
+          "line_end": 82,
+          "sample_id_start": 62,
+          "sample_id_end": 81,
+          "non_executable_count": 19
+        },
+        {
+          "line_start": 64,
+          "line_end": 83,
+          "sample_id_start": 63,
+          "sample_id_end": 82,
+          "non_executable_count": 19
+        }
+      ]
+    },
+    "day5_5": {
+      "path": "/Users/bytedance/text2sql_agent/results/expanded/day5_5_strict_repair_predictions.jsonl",
+      "total": 1534,
+      "nonempty_sql_count": 107,
+      "nonempty_sql_rate": 0.0697522816166884,
+      "is_executable_count": 107,
+      "VSR": 0.0697522816166884,
+      "is_correct_count": 51,
+      "EX": 0.033246414602346806,
+      "top_error_counts": [
+        {
+          "value": "Missing DeepSeek API key. Set DEEPSEEK_API_KEY in the environment.",
+          "count": 1427
+        },
+        {
+          "value": "no such column: s.sname",
+          "count": 4
+        },
+        {
+          "value": "no such column: sc.Charter School (Y/N)",
+          "count": 1
+        },
+        {
+          "value": "DISTINCT aggregates must have exactly one argument",
+          "count": 1
+        },
+        {
+          "value": "no such function: YEAR",
+          "count": 1
+        }
+      ],
+      "top_failure_reason_counts": [
+        {
+          "value": "Missing DeepSeek API key. Set DEEPSEEK_API_KEY in the environment.",
+          "count": 1427
+        }
+      ],
+      "top_llm_error_counts": [],
+      "failure_class_counts": {
+        "executable_but_incorrect": 56,
+        "correct": 51,
+        "api_or_llm_failure": 1427
+      },
+      "by_db_id": {
+        "california_schools": {
+          "total": 89,
+          "nonempty_sql_count": 51,
+          "is_executable_count": 51,
+          "is_correct_count": 17,
+          "VSR": 0.5730337078651685,
+          "EX": 0.19101123595505617
+        },
+        "card_games": {
+          "total": 191,
+          "nonempty_sql_count": 7,
+          "is_executable_count": 7,
+          "is_correct_count": 4,
+          "VSR": 0.03664921465968586,
+          "EX": 0.020942408376963352
+        },
+        "codebase_community": {
+          "total": 186,
+          "nonempty_sql_count": 10,
+          "is_executable_count": 10,
+          "is_correct_count": 7,
+          "VSR": 0.053763440860215055,
+          "EX": 0.03763440860215054
+        },
+        "debit_card_specializing": {
+          "total": 64,
+          "nonempty_sql_count": 6,
+          "is_executable_count": 6,
+          "is_correct_count": 3,
+          "VSR": 0.09375,
+          "EX": 0.046875
+        },
+        "european_football_2": {
+          "total": 129,
+          "nonempty_sql_count": 2,
+          "is_executable_count": 2,
+          "is_correct_count": 2,
+          "VSR": 0.015503875968992248,
+          "EX": 0.015503875968992248
+        },
+        "financial": {
+          "total": 106,
+          "nonempty_sql_count": 5,
+          "is_executable_count": 5,
+          "is_correct_count": 2,
+          "VSR": 0.04716981132075472,
+          "EX": 0.018867924528301886
+        },
+        "formula_1": {
+          "total": 174,
+          "nonempty_sql_count": 7,
+          "is_executable_count": 7,
+          "is_correct_count": 3,
+          "VSR": 0.040229885057471264,
+          "EX": 0.017241379310344827
+        },
+        "student_club": {
+          "total": 158,
+          "nonempty_sql_count": 4,
+          "is_executable_count": 4,
+          "is_correct_count": 3,
+          "VSR": 0.02531645569620253,
+          "EX": 0.0189873417721519
+        },
+        "superhero": {
+          "total": 129,
+          "nonempty_sql_count": 4,
+          "is_executable_count": 4,
+          "is_correct_count": 3,
+          "VSR": 0.031007751937984496,
+          "EX": 0.023255813953488372
+        },
+        "thrombosis_prediction": {
+          "total": 163,
+          "nonempty_sql_count": 6,
+          "is_executable_count": 6,
+          "is_correct_count": 5,
+          "VSR": 0.03680981595092025,
+          "EX": 0.03067484662576687
+        },
+        "toxicology": {
+          "total": 145,
+          "nonempty_sql_count": 5,
+          "is_executable_count": 5,
+          "is_correct_count": 2,
+          "VSR": 0.034482758620689655,
+          "EX": 0.013793103448275862
+        }
+      },
+      "by_difficulty": {
+        "challenging": {
+          "total": 231,
+          "nonempty_sql_count": 26,
+          "is_executable_count": 26,
+          "is_correct_count": 3,
+          "VSR": 0.11255411255411256,
+          "EX": 0.012987012987012988
+        },
+        "moderate": {
+          "total": 443,
+          "nonempty_sql_count": 25,
+          "is_executable_count": 25,
+          "is_correct_count": 12,
+          "VSR": 0.056433408577878104,
+          "EX": 0.02708803611738149
+        },
+        "simple": {
+          "total": 860,
+          "nonempty_sql_count": 56,
+          "is_executable_count": 56,
+          "is_correct_count": 36,
+          "VSR": 0.06511627906976744,
+          "EX": 0.04186046511627907
+        }
+      },
+      "longest_non_executable_streak": {
+        "length": 103,
+        "line_start": 1030,
+        "line_end": 1132,
+        "sample_id_start": 1029,
+        "sample_id_end": 1131
+      },
+      "longest_api_failure_streak": {
+        "length": 103,
+        "line_start": 1030,
+        "line_end": 1132,
+        "sample_id_start": 1029,
+        "sample_id_end": 1131
+      },
+      "high_failure_windows": [
+        {
+          "line_start": 46,
+          "line_end": 65,
+          "sample_id_start": 45,
+          "sample_id_end": 64,
+          "non_executable_count": 15
+        },
+        {
+          "line_start": 47,
+          "line_end": 66,
+          "sample_id_start": 46,
+          "sample_id_end": 65,
+          "non_executable_count": 16
+        },
+        {
+          "line_start": 48,
+          "line_end": 67,
+          "sample_id_start": 47,
+          "sample_id_end": 66,
+          "non_executable_count": 17
+        },
+        {
+          "line_start": 49,
+          "line_end": 68,
+          "sample_id_start": 48,
+          "sample_id_end": 67,
+          "non_executable_count": 18
+        },
+        {
+          "line_start": 50,
+          "line_end": 69,
+          "sample_id_start": 49,
+          "sample_id_end": 68,
+          "non_executable_count": 18
+        },
+        {
+          "line_start": 51,
+          "line_end": 70,
+          "sample_id_start": 50,
+          "sample_id_end": 69,
+          "non_executable_count": 19
+        },
+        {
+          "line_start": 52,
+          "line_end": 71,
+          "sample_id_start": 51,
+          "sample_id_end": 70,
+          "non_executable_count": 19
+        },
+        {
+          "line_start": 53,
+          "line_end": 72,
+          "sample_id_start": 52,
+          "sample_id_end": 71,
+          "non_executable_count": 19
+        },
+        {
+          "line_start": 54,
+          "line_end": 73,
+          "sample_id_start": 53,
+          "sample_id_end": 72,
+          "non_executable_count": 19
+        },
+        {
+          "line_start": 55,
+          "line_end": 74,
+          "sample_id_start": 54,
+          "sample_id_end": 73,
+          "non_executable_count": 19
+        },
+        {
+          "line_start": 56,
+          "line_end": 75,
+          "sample_id_start": 55,
+          "sample_id_end": 74,
+          "non_executable_count": 19
+        },
+        {
+          "line_start": 57,
+          "line_end": 76,
+          "sample_id_start": 56,
+          "sample_id_end": 75,
+          "non_executable_count": 19
+        },
+        {
+          "line_start": 58,
+          "line_end": 77,
+          "sample_id_start": 57,
+          "sample_id_end": 76,
+          "non_executable_count": 19
+        },
+        {
+          "line_start": 59,
+          "line_end": 78,
+          "sample_id_start": 58,
+          "sample_id_end": 77,
+          "non_executable_count": 19
+        },
+        {
+          "line_start": 60,
+          "line_end": 79,
+          "sample_id_start": 59,
+          "sample_id_end": 78,
+          "non_executable_count": 19
+        },
+        {
+          "line_start": 61,
+          "line_end": 80,
+          "sample_id_start": 60,
+          "sample_id_end": 79,
+          "non_executable_count": 19
+        },
+        {
+          "line_start": 62,
+          "line_end": 81,
+          "sample_id_start": 61,
+          "sample_id_end": 80,
+          "non_executable_count": 19
+        },
+        {
+          "line_start": 63,
+          "line_end": 82,
+          "sample_id_start": 62,
+          "sample_id_end": 81,
+          "non_executable_count": 19
+        },
+        {
+          "line_start": 64,
+          "line_end": 83,
+          "sample_id_start": 63,
+          "sample_id_end": 82,
+          "non_executable_count": 19
+        },
+        {
+          "line_start": 65,
+          "line_end": 84,
+          "sample_id_start": 64,
+          "sample_id_end": 83,
+          "non_executable_count": 19
+        }
+      ]
+    },
+    "day6": {
+      "path": "/Users/bytedance/text2sql_agent/results/expanded/day6_ddl_predictions.jsonl",
+      "total": 1534,
+      "nonempty_sql_count": 108,
+      "nonempty_sql_rate": 0.07040417209908735,
+      "is_executable_count": 97,
+      "VSR": 0.06323337679269883,
+      "is_correct_count": 45,
+      "EX": 0.029335071707953065,
+      "top_error_counts": [
+        {
+          "value": "Missing DeepSeek API key. Set DEEPSEEK_API_KEY in the environment.",
+          "count": 1426
+        },
+        {
+          "value": "no such column: s.sname",
+          "count": 6
+        },
+        {
+          "value": "no such column: s.School",
+          "count": 2
+        },
+        {
+          "value": "no such column: s.cname",
+          "count": 1
+        },
+        {
+          "value": "DISTINCT aggregates must have exactly one argument",
+          "count": 1
+        },
+        {
+          "value": "no such function: YEAR",
+          "count": 1
+        }
+      ],
+      "top_failure_reason_counts": [
+        {
+          "value": "Missing DeepSeek API key. Set DEEPSEEK_API_KEY in the environment.",
+          "count": 1426
+        },
+        {
+          "value": "no such column: s.sname",
+          "count": 6
+        },
+        {
+          "value": "no such column: s.School",
+          "count": 2
+        },
+        {
+          "value": "no such column: s.cname",
+          "count": 1
+        },
+        {
+          "value": "DISTINCT aggregates must have exactly one argument",
+          "count": 1
+        },
+        {
+          "value": "no such function: YEAR",
+          "count": 1
+        }
+      ],
+      "top_llm_error_counts": [
+        {
+          "value": "Missing DeepSeek API key. Set DEEPSEEK_API_KEY in the environment.",
+          "count": 1426
+        }
+      ],
+      "failure_class_counts": {
+        "executable_but_incorrect": 52,
+        "execution_error": 10,
+        "correct": 45,
+        "api_or_llm_failure": 1426,
+        "non_executable_other": 1
+      },
+      "by_db_id": {
+        "california_schools": {
+          "total": 89,
+          "nonempty_sql_count": 52,
+          "is_executable_count": 43,
+          "is_correct_count": 14,
+          "VSR": 0.48314606741573035,
+          "EX": 0.15730337078651685
+        },
+        "card_games": {
+          "total": 191,
+          "nonempty_sql_count": 7,
+          "is_executable_count": 7,
+          "is_correct_count": 4,
+          "VSR": 0.03664921465968586,
+          "EX": 0.020942408376963352
+        },
+        "codebase_community": {
+          "total": 186,
+          "nonempty_sql_count": 10,
+          "is_executable_count": 10,
+          "is_correct_count": 6,
+          "VSR": 0.053763440860215055,
+          "EX": 0.03225806451612903
+        },
+        "debit_card_specializing": {
+          "total": 64,
+          "nonempty_sql_count": 6,
+          "is_executable_count": 6,
+          "is_correct_count": 2,
+          "VSR": 0.09375,
+          "EX": 0.03125
+        },
+        "european_football_2": {
+          "total": 129,
+          "nonempty_sql_count": 2,
+          "is_executable_count": 2,
+          "is_correct_count": 2,
+          "VSR": 0.015503875968992248,
+          "EX": 0.015503875968992248
+        },
+        "financial": {
+          "total": 106,
+          "nonempty_sql_count": 5,
+          "is_executable_count": 5,
+          "is_correct_count": 1,
+          "VSR": 0.04716981132075472,
+          "EX": 0.009433962264150943
+        },
+        "formula_1": {
+          "total": 174,
+          "nonempty_sql_count": 7,
+          "is_executable_count": 7,
+          "is_correct_count": 4,
+          "VSR": 0.040229885057471264,
+          "EX": 0.022988505747126436
+        },
+        "student_club": {
+          "total": 158,
+          "nonempty_sql_count": 4,
+          "is_executable_count": 4,
+          "is_correct_count": 3,
+          "VSR": 0.02531645569620253,
+          "EX": 0.0189873417721519
+        },
+        "superhero": {
+          "total": 129,
+          "nonempty_sql_count": 4,
+          "is_executable_count": 4,
+          "is_correct_count": 3,
+          "VSR": 0.031007751937984496,
+          "EX": 0.023255813953488372
+        },
+        "thrombosis_prediction": {
+          "total": 163,
+          "nonempty_sql_count": 6,
+          "is_executable_count": 5,
+          "is_correct_count": 4,
+          "VSR": 0.03067484662576687,
+          "EX": 0.024539877300613498
+        },
+        "toxicology": {
+          "total": 145,
+          "nonempty_sql_count": 5,
+          "is_executable_count": 4,
+          "is_correct_count": 2,
+          "VSR": 0.027586206896551724,
+          "EX": 0.013793103448275862
+        }
+      },
+      "by_difficulty": {
+        "challenging": {
+          "total": 231,
+          "nonempty_sql_count": 27,
+          "is_executable_count": 19,
+          "is_correct_count": 3,
+          "VSR": 0.08225108225108226,
+          "EX": 0.012987012987012988
+        },
+        "moderate": {
+          "total": 443,
+          "nonempty_sql_count": 25,
+          "is_executable_count": 22,
+          "is_correct_count": 8,
+          "VSR": 0.04966139954853273,
+          "EX": 0.01805869074492099
+        },
+        "simple": {
+          "total": 860,
+          "nonempty_sql_count": 56,
+          "is_executable_count": 56,
+          "is_correct_count": 34,
+          "VSR": 0.06511627906976744,
+          "EX": 0.03953488372093023
+        }
+      },
+      "longest_non_executable_streak": {
+        "length": 103,
+        "line_start": 1030,
+        "line_end": 1132,
+        "sample_id_start": 1029,
+        "sample_id_end": 1131
+      },
+      "longest_api_failure_streak": {
+        "length": 103,
+        "line_start": 1030,
+        "line_end": 1132,
+        "sample_id_start": 1029,
+        "sample_id_end": 1131
+      },
+      "high_failure_windows": [
+        {
+          "line_start": 46,
+          "line_end": 65,
+          "sample_id_start": 45,
+          "sample_id_end": 64,
+          "non_executable_count": 15
+        },
+        {
+          "line_start": 47,
+          "line_end": 66,
+          "sample_id_start": 46,
+          "sample_id_end": 65,
+          "non_executable_count": 16
+        },
+        {
+          "line_start": 48,
+          "line_end": 67,
+          "sample_id_start": 47,
+          "sample_id_end": 66,
+          "non_executable_count": 17
+        },
+        {
+          "line_start": 49,
+          "line_end": 68,
+          "sample_id_start": 48,
+          "sample_id_end": 67,
+          "non_executable_count": 18
+        },
+        {
+          "line_start": 50,
+          "line_end": 69,
+          "sample_id_start": 49,
+          "sample_id_end": 68,
+          "non_executable_count": 18
+        },
+        {
+          "line_start": 51,
+          "line_end": 70,
+          "sample_id_start": 50,
+          "sample_id_end": 69,
+          "non_executable_count": 19
+        },
+        {
+          "line_start": 52,
+          "line_end": 71,
+          "sample_id_start": 51,
+          "sample_id_end": 70,
+          "non_executable_count": 19
+        },
+        {
+          "line_start": 53,
+          "line_end": 72,
+          "sample_id_start": 52,
+          "sample_id_end": 71,
+          "non_executable_count": 19
+        },
+        {
+          "line_start": 54,
+          "line_end": 73,
+          "sample_id_start": 53,
+          "sample_id_end": 72,
+          "non_executable_count": 19
+        },
+        {
+          "line_start": 55,
+          "line_end": 74,
+          "sample_id_start": 54,
+          "sample_id_end": 73,
+          "non_executable_count": 19
+        },
+        {
+          "line_start": 56,
+          "line_end": 75,
+          "sample_id_start": 55,
+          "sample_id_end": 74,
+          "non_executable_count": 19
+        },
+        {
+          "line_start": 57,
+          "line_end": 76,
+          "sample_id_start": 56,
+          "sample_id_end": 75,
+          "non_executable_count": 19
+        },
+        {
+          "line_start": 58,
+          "line_end": 77,
+          "sample_id_start": 57,
+          "sample_id_end": 76,
+          "non_executable_count": 19
+        },
+        {
+          "line_start": 59,
+          "line_end": 78,
+          "sample_id_start": 58,
+          "sample_id_end": 77,
+          "non_executable_count": 19
+        },
+        {
+          "line_start": 60,
+          "line_end": 79,
+          "sample_id_start": 59,
+          "sample_id_end": 78,
+          "non_executable_count": 19
+        },
+        {
+          "line_start": 61,
+          "line_end": 80,
+          "sample_id_start": 60,
+          "sample_id_end": 79,
+          "non_executable_count": 19
+        },
+        {
+          "line_start": 62,
+          "line_end": 81,
+          "sample_id_start": 61,
+          "sample_id_end": 80,
+          "non_executable_count": 19
+        },
+        {
+          "line_start": 63,
+          "line_end": 82,
+          "sample_id_start": 62,
+          "sample_id_end": 81,
+          "non_executable_count": 19
+        },
+        {
+          "line_start": 64,
+          "line_end": 83,
+          "sample_id_start": 63,
+          "sample_id_end": 82,
+          "non_executable_count": 19
+        },
+        {
+          "line_start": 65,
+          "line_end": 84,
+          "sample_id_start": 64,
+          "sample_id_end": 83,
+          "non_executable_count": 19
+        }
+      ]
+    }
+  },
+  "summary_consistency": {
+    "day2": {
+      "total_matches_1534": true,
+      "low_vsr_not_due_to_missing_rows": true,
+      "nonempty_sql_rate": 0.07040417209908735,
+      "VSR": 0.06453715775749674,
+      "EX": 0.02607561929595828
+    },
+    "day3": {
+      "total_matches_1534": true,
+      "low_vsr_not_due_to_missing_rows": true,
+      "nonempty_sql_rate": 0.07040417209908735,
+      "VSR": 0.0651890482398957,
+      "EX": 0.03259452411994785
+    },
+    "day5_5": {
+      "total_matches_1534": true,
+      "low_vsr_not_due_to_missing_rows": true,
+      "nonempty_sql_rate": 0.0697522816166884,
+      "VSR": 0.0697522816166884,
+      "EX": 0.033246414602346806
+    },
+    "day6": {
+      "total_matches_1534": true,
+      "low_vsr_not_due_to_missing_rows": true,
+      "nonempty_sql_rate": 0.07040417209908735,
+      "VSR": 0.06323337679269883,
+      "EX": 0.029335071707953065
+    }
+  },
+  "root_cause_summary": {
+    "day2": {
+      "dominant_failure_class": "api_or_llm_failure",
+      "api_or_llm_failure_count": 1427,
+      "sql_extraction_failure_count": 0,
+      "execution_error_count": 8,
+      "executable_but_incorrect_count": 59
+    },
+    "day3": {
+      "dominant_failure_class": "api_or_llm_failure",
+      "api_or_llm_failure_count": 1426,
+      "sql_extraction_failure_count": 0,
+      "execution_error_count": 7,
+      "executable_but_incorrect_count": 50
+    },
+    "day5_5": {
+      "dominant_failure_class": "api_or_llm_failure",
+      "api_or_llm_failure_count": 1427,
+      "sql_extraction_failure_count": 0,
+      "execution_error_count": 0,
+      "executable_but_incorrect_count": 56
+    },
+    "day6": {
+      "dominant_failure_class": "api_or_llm_failure",
+      "api_or_llm_failure_count": 1426,
+      "sql_extraction_failure_count": 0,
+      "execution_error_count": 10,
+      "executable_but_incorrect_count": 52
+    }
+  },
+  "api_failed_manifest": {
+    "count": 1428,
+    "path": "/Users/bytedance/text2sql_agent/results/expanded/api_failed_manifest.jsonl"
+  }
+}

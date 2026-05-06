@@ -1,0 +1,599 @@
+sample_id,difficulty,day3_ex,strict_repair_ex,day3_pred_success,strict_final_success,change_type,question,initial_pred_sql,final_pred_sql,initial_error,final_error
+98,moderate,True,True,True,True,same_correct,"Among the accounts who have approved loan date in 1997, list out the accounts that have the lowest approved amount and choose weekly issuance statement.","SELECT a.account_id
+FROM account a
+JOIN loan l ON a.account_id = l.account_id
+WHERE strftime('%Y', l.date) = '1997'
+  AND a.frequency = 'POPLATEK TYDNE'
+ORDER BY l.amount ASC
+LIMIT 1;","SELECT a.account_id
+FROM account a
+JOIN loan l ON a.account_id = l.account_id
+WHERE strftime('%Y', l.date) = '1997'
+  AND a.frequency = 'POPLATEK TYDNE'
+ORDER BY l.amount ASC
+LIMIT 1;",,
+1373,simple,True,True,True,True,same_correct,How many of the members' hometowns are from Maryland state?,"SELECT COUNT(DISTINCT m.member_id)
+FROM member m
+JOIN zip_code z ON m.zip = z.zip_code
+WHERE z.state = 'Maryland';","SELECT COUNT(DISTINCT m.member_id)
+FROM member m
+JOIN zip_code z ON m.zip = z.zip_code
+WHERE z.state = 'Maryland';",,
+597,simple,True,True,True,True,same_correct,How many users from India have the teacher badges?,"SELECT COUNT(DISTINCT u.Id)
+FROM users u
+JOIN badges b ON u.Id = b.UserId
+WHERE u.Location = 'India'
+  AND b.Name = 'Teacher';","SELECT COUNT(DISTINCT u.Id)
+FROM users u
+JOIN badges b ON u.Id = b.UserId
+WHERE u.Location = 'India'
+  AND b.Name = 'Teacher';",,
+45,challenging,False,False,False,True,same_wrong,"For schools administered by Ricci Ulrich, provide a comprehensive performance analysis including their SAT scores in all three sections, total SAT score, rankings compared to other schools, FRPM eligibility rate, test participation rate, and how their writing scores compare to their district average.","SELECT 
+    s.sname AS School_Name,
+    sa.AvgScrRead AS Reading_Score,
+    sa.AvgScrMath AS Math_Score,
+    sa.AvgScrWrite AS Writing_Score,
+    (sa.AvgScrRead + sa.AvgScrMath + sa.AvgScrWrite) AS Total_SAT_Score,
+    RANK() OVER (ORDER BY (sa.AvgScrRead + sa.AvgScrMath + sa.AvgScrWrite) DESC) AS Overall_Rank,
+    f.`Percent (%) Eligible FRPM (K-12)` AS FRPM_Eligibility_Rate,
+    ROUND((CAST(sa.NumTstTakr AS REAL) / f.`Enrollment (K-12)`) * 100, 2) AS Test_Participation_Rate,
+    sa.AvgScrWrite - AVG(sa2.AvgScrWrite) OVER (PARTITION BY s.District) AS Writing_Score_vs_District_Avg
+FROM schools s
+JOIN satscores sa ON s.CDSCode = sa.cds
+JOIN frpm f ON s.CDSCode = f.CDSCode
+LEFT JOIN satscores sa2 ON s.District = sa2.dname
+WHERE s.AdmLName1 = 'Ulrich' AND s.AdmFName1 = 'Ricci';","SELECT 
+    sa.sname AS School_Name,
+    sa.AvgScrRead AS Reading_Score,
+    sa.AvgScrMath AS Math_Score,
+    sa.AvgScrWrite AS Writing_Score,
+    (sa.AvgScrRead + sa.AvgScrMath + sa.AvgScrWrite) AS Total_SAT_Score,
+    RANK() OVER (ORDER BY (sa.AvgScrRead + sa.AvgScrMath + sa.AvgScrWrite) DESC) AS Overall_Rank,
+    f.`Percent (%) Eligible FRPM (K-12)` AS FRPM_Eligibility_Rate,
+    ROUND((CAST(sa.NumTstTakr AS REAL) / f.`Enrollment (K-12)`) * 100, 2) AS Test_Participation_Rate,
+    sa.AvgScrWrite - AVG(sa2.AvgScrWrite) OVER (PARTITION BY s.District) AS Writing_Score_vs_District_Avg
+FROM schools s
+JOIN satscores sa ON s.CDSCode = sa.cds
+JOIN frpm f ON s.CDSCode = f.CDSCode
+LEFT JOIN satscores sa2 ON s.District = sa2.dname
+WHERE s.AdmLName1 = 'Ulrich' AND s.AdmFName1 = 'Ricci';",no such column: s.sname,
+596,simple,True,True,True,True,same_correct,Which user has posted the most comments? List out all the user's badge.,"SELECT b.Name
+FROM badges b
+WHERE b.UserId = (
+    SELECT c.UserId
+    FROM comments c
+    GROUP BY c.UserId
+    ORDER BY COUNT(c.Id) DESC
+    LIMIT 1
+);","SELECT b.Name
+FROM badges b
+WHERE b.UserId = (
+    SELECT c.UserId
+    FROM comments c
+    GROUP BY c.UserId
+    ORDER BY COUNT(c.Id) DESC
+    LIMIT 1
+);",,
+444,simple,False,False,True,True,same_wrong,Name the foreign name of the card that has boros watermark? List out the type of this card.,"SELECT f.name AS foreign_name, f.type AS card_type
+FROM foreign_data f
+JOIN cards c ON f.uuid = c.uuid
+WHERE c.watermark = 'boros';","SELECT f.name AS foreign_name, f.type AS card_type
+FROM foreign_data f
+JOIN cards c ON f.uuid = c.uuid
+WHERE c.watermark = 'boros';",,
+288,simple,True,True,True,True,same_correct,Identify whether the molecule that contains atom TR001_1 is carcinogenic.,"SELECT m.label 
+FROM molecule m 
+JOIN atom a ON m.molecule_id = a.molecule_id 
+WHERE a.atom_id = 'TR001_1';","SELECT m.label 
+FROM molecule m 
+JOIN atom a ON m.molecule_id = a.molecule_id 
+WHERE a.atom_id = 'TR001_1';",,
+999,simple,True,True,True,True,same_correct,What is the name of the race in which a driver recorded the fastest lap time?,"SELECT r.name
+FROM races r
+JOIN results res ON r.raceId = res.raceId
+JOIN lapTimes lt ON r.raceId = lt.raceId AND res.driverId = lt.driverId
+ORDER BY lt.milliseconds ASC
+LIMIT 1;","SELECT r.name
+FROM races r
+JOIN results res ON r.raceId = res.raceId
+JOIN lapTimes lt ON r.raceId = lt.raceId AND res.driverId = lt.driverId
+ORDER BY lt.milliseconds ASC
+LIMIT 1;",,
+321,simple,True,True,True,True,same_correct,"What is the molecule of atom id ""TR000_2"" and atom id 2 ""TR000_4""?","SELECT a.molecule_id
+FROM atom a
+WHERE a.atom_id = 'TR000_2'
+INTERSECT
+SELECT a2.molecule_id
+FROM atom a2
+WHERE a2.atom_id = 'TR000_4';","SELECT a.molecule_id
+FROM atom a
+WHERE a.atom_id = 'TR000_2'
+INTERSECT
+SELECT a2.molecule_id
+FROM atom a2
+WHERE a2.atom_id = 'TR000_4';",,
+580,simple,False,False,True,True,same_wrong,Name 10 users with the badge name 'Necromancer.',"SELECT DISTINCT u.DisplayName
+FROM users u
+JOIN badges b ON u.Id = b.UserId
+WHERE b.Name = 'Necromancer'
+LIMIT 10;","SELECT DISTINCT u.DisplayName
+FROM users u
+JOIN badges b ON u.Id = b.UserId
+WHERE b.Name = 'Necromancer'
+LIMIT 10;",,
+524,simple,True,True,True,True,same_correct,List the artists who illustrated cards with black borders which are available only in arena.,"SELECT DISTINCT c.artist
+FROM cards c
+WHERE c.borderColor = 'black'
+  AND c.availability = 'arena';","SELECT DISTINCT c.artist
+FROM cards c
+WHERE c.borderColor = 'black'
+  AND c.availability = 'arena';",,
+111,challenging,False,False,True,True,same_wrong,"What are the comprehensive statistics for accounts opened in Litomerice in 1996, including client demographics, transaction activity, loan information, and quarterly distribution of account openings?","SELECT 
+    c.client_id,
+    c.gender,
+    c.birth_date,
+    a.account_id,
+    a.date AS account_open_date,
+    COUNT(t.trans_id) AS total_transactions,
+    SUM(CASE WHEN t.type = 'PRIJEM' THEN t.amount ELSE 0 END) AS total_credits,
+    SUM(CASE WHEN t.type = 'VYDAJ' THEN t.amount ELSE 0 END) AS total_debits,
+    l.loan_id,
+    l.amount AS loan_amount,
+    l.status AS loan_status,
+    CASE 
+        WHEN CAST(strftime('%m', a.date) AS INTEGER) BETWEEN 1 AND 3 THEN 'Q1'
+        WHEN CAST(strftime('%m', a.date) AS INTEGER) BETWEEN 4 AND 6 THEN 'Q2'
+        WHEN CAST(strftime('%m', a.date) AS INTEGER) BETWEEN 7 AND 9 THEN 'Q3'
+        ELSE 'Q4'
+    END AS quarter_opened
+FROM account a
+JOIN district d ON a.district_id = d.district_id
+JOIN disp dp ON a.account_id = dp.account_id
+JOIN client c ON dp.client_id = c.client_id
+LEFT JOIN trans t ON a.account_id = t.account_id
+LEFT JOIN loan l ON a.account_id = l.account_id
+WHERE d.A2 = 'Litomerice'
+    AND strftime('%Y', a.date) = '1996'
+GROUP BY a.account_id, c.client_id, l.loan_id;","SELECT 
+    c.client_id,
+    c.gender,
+    c.birth_date,
+    a.account_id,
+    a.date AS account_open_date,
+    COUNT(t.trans_id) AS total_transactions,
+    SUM(CASE WHEN t.type = 'PRIJEM' THEN t.amount ELSE 0 END) AS total_credits,
+    SUM(CASE WHEN t.type = 'VYDAJ' THEN t.amount ELSE 0 END) AS total_debits,
+    l.loan_id,
+    l.amount AS loan_amount,
+    l.status AS loan_status,
+    CASE 
+        WHEN CAST(strftime('%m', a.date) AS INTEGER) BETWEEN 1 AND 3 THEN 'Q1'
+        WHEN CAST(strftime('%m', a.date) AS INTEGER) BETWEEN 4 AND 6 THEN 'Q2'
+        WHEN CAST(strftime('%m', a.date) AS INTEGER) BETWEEN 7 AND 9 THEN 'Q3'
+        ELSE 'Q4'
+    END AS quarter_opened
+FROM account a
+JOIN district d ON a.district_id = d.district_id
+JOIN disp dp ON a.account_id = dp.account_id
+JOIN client c ON dp.client_id = c.client_id
+LEFT JOIN trans t ON a.account_id = t.account_id
+LEFT JOIN loan l ON a.account_id = l.account_id
+WHERE d.A2 = 'Litomerice'
+    AND strftime('%Y', a.date) = '1996'
+GROUP BY a.account_id, c.client_id, l.loan_id;",,
+207,challenging,False,False,False,True,same_wrong,"For each element that participates in double bonds, what is the count of atoms, the number of molecules containing them, their percentage of all atoms in the database, and examples of up to 3 molecules (with labels) where they appear in double bonds?","SELECT 
+    a.element,
+    COUNT(DISTINCT a.atom_id) AS atom_count,
+    COUNT(DISTINCT a.molecule_id) AS molecule_count,
+    ROUND(COUNT(DISTINCT a.atom_id) * 100.0 / (SELECT COUNT(*) FROM atom), 2) AS percentage,
+    GROUP_CONCAT(DISTINCT m.molecule_id || ' (' || m.label || ')', ', ') AS example_molecules
+FROM atom a
+JOIN connected c ON a.atom_id = c.atom_id
+JOIN bond b ON c.bond_id = b.bond_id
+JOIN molecule m ON a.molecule_id = m.molecule_id
+WHERE b.bond_type = '='
+GROUP BY a.element
+ORDER BY atom_count DESC;","SELECT 
+    a.element,
+    COUNT(DISTINCT a.atom_id) AS atom_count,
+    COUNT(DISTINCT a.molecule_id) AS molecule_count,
+    ROUND(COUNT(DISTINCT a.atom_id) * 100.0 / (SELECT COUNT(*) FROM atom), 2) AS percentage,
+    GROUP_CONCAT(DISTINCT m.molecule_id || ' (' || m.label || ')') AS example_molecules
+FROM atom a
+JOIN connected c ON a.atom_id = c.atom_id
+JOIN bond b ON c.bond_id = b.bond_id
+JOIN molecule m ON a.molecule_id = m.molecule_id
+WHERE b.bond_type = '='
+GROUP BY a.element
+ORDER BY atom_count DESC;",DISTINCT aggregates must have exactly one argument,
+36,challenging,False,False,True,True,same_wrong,Under whose administration is the school with the highest number of students scoring 1500 or more on the SAT? Indicate their full names.,"SELECT s.AdmFName1 || ' ' || s.AdmLName1 AS full_name
+FROM satscores AS sat
+JOIN schools AS s ON sat.cds = s.CDSCode
+ORDER BY sat.NumGE1500 DESC
+LIMIT 1;","SELECT s.AdmFName1 || ' ' || s.AdmLName1 AS full_name
+FROM satscores AS sat
+JOIN schools AS s ON sat.cds = s.CDSCode
+ORDER BY sat.NumGE1500 DESC
+LIMIT 1;",,
+991,simple,False,False,True,True,same_wrong,What is the full name and date of birth of Austrian drivers born between 1981 and 1991?,"SELECT forename || ' ' || surname AS ""Full Name"", dob AS ""Date of Birth"" FROM drivers WHERE nationality = 'Austrian' AND CAST(strftime('%Y', dob) AS INTEGER) BETWEEN 1981 AND 1991;","SELECT forename || ' ' || surname AS ""Full Name"", dob AS ""Date of Birth"" FROM drivers WHERE nationality = 'Austrian' AND CAST(strftime('%Y', dob) AS INTEGER) BETWEEN 1981 AND 1991;",,
+1519,simple,True,True,True,True,same_correct,What was the product id of the transaction happened at 2012/8/23 21:20:00?,SELECT `ProductID` FROM transactions_1k WHERE `Date` = '2012-08-23' AND `Time` = '21:20:00';,SELECT `ProductID` FROM transactions_1k WHERE `Date` = '2012-08-23' AND `Time` = '21:20:00';,,
+132,simple,True,True,True,True,same_correct,What is the average loan amount by male borrowers?,"SELECT AVG(l.amount) 
+FROM loan l 
+JOIN disp d ON l.account_id = d.account_id 
+JOIN client c ON d.client_id = c.client_id 
+WHERE c.gender = 'M';","SELECT AVG(l.amount) 
+FROM loan l 
+JOIN disp d ON l.account_id = d.account_id 
+JOIN client c ON d.client_id = c.client_id 
+WHERE c.gender = 'M';",,
+808,simple,False,False,True,True,same_wrong,Find the race of the superhero who weighs 108kg and is 188cm tall.,"SELECT r.race 
+FROM superhero s 
+JOIN race r ON s.race_id = r.id 
+WHERE s.weight_kg = 108 AND s.height_cm = 188;","SELECT r.race 
+FROM superhero s 
+JOIN race r ON s.race_id = r.id 
+WHERE s.weight_kg = 108 AND s.height_cm = 188;",,
+925,simple,True,True,True,True,same_correct,Please give the link of the website that shows more information about the circuits the Spanish Grand Prix used in 2009.,"SELECT c.url 
+FROM circuits c 
+JOIN races r ON c.circuitId = r.circuitId 
+WHERE r.name = 'Spanish Grand Prix' AND r.year = 2009;","SELECT c.url 
+FROM circuits c 
+JOIN races r ON c.circuitId = r.circuitId 
+WHERE r.name = 'Spanish Grand Prix' AND r.year = 2009;",,
+628,simple,False,False,True,True,same_wrong,Which users have the highest number of views?,"SELECT `DisplayName`, `Views` 
+FROM users 
+ORDER BY `Views` DESC 
+LIMIT 1;","SELECT `DisplayName`, `Views` 
+FROM users 
+ORDER BY `Views` DESC 
+LIMIT 1;",,
+86,simple,True,True,True,True,same_correct,"What is the administrator's last name that oversees the school with Charter number 40? Indicate the district, the county where the school is situated, and the name of the school.","SELECT s.AdmLName1, s.District, s.County, s.School
+FROM schools s
+WHERE s.CharterNum = '0040';","SELECT s.AdmLName1, s.District, s.County, s.School
+FROM schools s
+WHERE s.CharterNum = '0040';",,
+68,moderate,False,False,True,True,same_wrong,Which county reported the most number of school closure in the 1980s with school wonership code belonging to Youth Authority Facilities (CEA)?,"SELECT s.County, COUNT(*) AS closure_count
+FROM schools s
+WHERE s.SOC = '11'
+  AND s.ClosedDate >= '1980-01-01'
+  AND s.ClosedDate <= '1989-12-31'
+GROUP BY s.County
+ORDER BY closure_count DESC
+LIMIT 1;","SELECT s.County, COUNT(*) AS closure_count
+FROM schools s
+WHERE s.SOC = '11'
+  AND s.ClosedDate >= '1980-01-01'
+  AND s.ClosedDate <= '1989-12-31'
+GROUP BY s.County
+ORDER BY closure_count DESC
+LIMIT 1;",,
+1190,challenging,False,False,True,True,same_wrong,What percentage of patients with a proteinuria level within the normal range have a uric acid level below the normal range?,"SELECT 
+    (COUNT(CASE WHEN l.UA <= 6.5 THEN 1 END) * 100.0 / COUNT(*)) AS percentage
+FROM Laboratory l
+WHERE l.`U-PRO` > 0 AND l.`U-PRO` < 30;","SELECT 
+    (COUNT(CASE WHEN l.UA <= 6.5 THEN 1 END) * 100.0 / COUNT(*)) AS percentage
+FROM Laboratory l
+WHERE l.`U-PRO` > 0 AND l.`U-PRO` < 30;",,
+263,challenging,False,False,True,True,same_wrong,What is the composition of element chlorine in percentage among the single bond molecules?,"SELECT 
+    (SUM(CASE WHEN a.element = 'cl' THEN 1 ELSE 0 END) * 100.0 / COUNT(a.atom_id)) AS percent
+FROM atom a
+JOIN connected c ON a.atom_id = c.atom_id
+JOIN bond b ON c.bond_id = b.bond_id
+WHERE b.bond_type = '-';","SELECT 
+    (SUM(CASE WHEN a.element = 'cl' THEN 1 ELSE 0 END) * 100.0 / COUNT(a.atom_id)) AS percent
+FROM atom a
+JOIN connected c ON a.atom_id = c.atom_id
+JOIN bond b ON c.bond_id = b.bond_id
+WHERE b.bond_type = '-';",,
+718,simple,True,True,True,True,same_correct,"How many superheroes have the super power of ""Super Strength""?","SELECT COUNT(DISTINCT hp.hero_id)
+FROM hero_power hp
+JOIN superpower sp ON hp.power_id = sp.id
+WHERE sp.power_name = 'Super Strength';","SELECT COUNT(DISTINCT hp.hero_id)
+FROM hero_power hp
+JOIN superpower sp ON hp.power_id = sp.id
+WHERE sp.power_name = 'Super Strength';",,
+383,simple,True,True,True,True,same_correct,How many of the cards which is banned at least in one format are white border?,"SELECT COUNT(DISTINCT c.uuid)
+FROM cards c
+JOIN legalities l ON c.uuid = l.uuid
+WHERE l.status = 'Banned'
+  AND c.borderColor = 'white';","SELECT COUNT(DISTINCT c.uuid)
+FROM cards c
+JOIN legalities l ON c.uuid = l.uuid
+WHERE l.status = 'Banned'
+  AND c.borderColor = 'white';",,
+1303,simple,True,True,True,True,same_correct,When is the birthday of the oldest patient whose blood glucose is abnormal?,SELECT MIN(Birthday) FROM Patient WHERE ID IN (SELECT ID FROM Laboratory WHERE GLU > 180);,SELECT MIN(Birthday) FROM Patient WHERE ID IN (SELECT ID FROM Laboratory WHERE GLU > 180);,,
+1471,simple,True,True,True,True,same_correct,What is the ratio of customers who pay in EUR against customers who pay in CZK?,"SELECT 
+    CAST(SUM(CASE WHEN Currency = 'EUR' THEN 1 ELSE 0 END) AS REAL) / 
+    NULLIF(SUM(CASE WHEN Currency = 'CZK' THEN 1 ELSE 0 END), 0) AS ratio
+FROM customers;","SELECT 
+    CAST(SUM(CASE WHEN Currency = 'EUR' THEN 1 ELSE 0 END) AS REAL) / 
+    NULLIF(SUM(CASE WHEN Currency = 'CZK' THEN 1 ELSE 0 END), 0) AS ratio
+FROM customers;",,
+649,simple,False,False,True,True,same_wrong,"Describe the post history counts and last edit date of the post title ""What is the best introductory Bayesian statistics textbook?""","SELECT ph.PostId, COUNT(ph.Id) AS PostHistoryCount, MAX(p.LastEditDate) AS LastEditDate
+FROM posts p
+JOIN postHistory ph ON p.Id = ph.PostId
+WHERE p.Title = 'What is the best introductory Bayesian statistics textbook?'
+GROUP BY ph.PostId;","SELECT ph.PostId, COUNT(ph.Id) AS PostHistoryCount, MAX(p.LastEditDate) AS LastEditDate
+FROM posts p
+JOIN postHistory ph ON p.Id = ph.PostId
+WHERE p.Title = 'What is the best introductory Bayesian statistics textbook?'
+GROUP BY ph.PostId;",,
+1246,moderate,True,True,True,True,same_correct,"For the patients with an abnormal activated partial prothrom bin time, how many of them does not have thrombosis?","SELECT COUNT(DISTINCT l.ID)
+FROM Laboratory l
+JOIN Examination e ON l.ID = e.ID
+WHERE l.APTT > 45
+  AND e.Thrombosis = 0;","SELECT COUNT(DISTINCT l.ID)
+FROM Laboratory l
+JOIN Examination e ON l.ID = e.ID
+WHERE l.APTT > 45
+  AND e.Thrombosis = 0;",,
+215,challenging,False,False,True,True,same_wrong,How many atoms with iodine and with sulfur type elements are there in single bond molecules?,"SELECT COUNT(DISTINCT a.atom_id)
+FROM atom a
+JOIN connected c ON a.atom_id = c.atom_id
+JOIN bond b ON c.bond_id = b.bond_id
+WHERE a.element IN ('i', 's')
+  AND b.bond_type = '-';","SELECT COUNT(DISTINCT a.atom_id)
+FROM atom a
+JOIN connected c ON a.atom_id = c.atom_id
+JOIN bond b ON c.bond_id = b.bond_id
+WHERE a.element IN ('i', 's')
+  AND b.bond_type = '-';",,
+1132,simple,True,True,True,True,same_correct,Please provide the names of top three football players who are over 180 cm tall in alphabetical order.,SELECT player_name FROM Player WHERE height > 180 ORDER BY player_name ASC LIMIT 3;,SELECT player_name FROM Player WHERE height > 180 ORDER BY player_name ASC LIMIT 3;,,
+526,simple,True,True,True,True,same_correct,"Among the card designed by Matthew D. Wilson, how many are available only in the paper?","SELECT COUNT(*) 
+FROM cards 
+WHERE artist = 'Matthew D. Wilson' 
+  AND availability = 'paper';","SELECT COUNT(*) 
+FROM cards 
+WHERE artist = 'Matthew D. Wilson' 
+  AND availability = 'paper';",,
+1527,simple,False,False,True,True,same_wrong,Which gas station has the highest amount of revenue?,"SELECT g.GasStationID, SUM(t.Amount * t.Price) AS Revenue
+FROM transactions_1k t
+JOIN gasstations g ON t.GasStationID = g.GasStationID
+GROUP BY g.GasStationID
+ORDER BY Revenue DESC
+LIMIT 1;","SELECT g.GasStationID, SUM(t.Amount * t.Price) AS Revenue
+FROM transactions_1k t
+JOIN gasstations g ON t.GasStationID = g.GasStationID
+GROUP BY g.GasStationID
+ORDER BY Revenue DESC
+LIMIT 1;",,
+705,simple,True,True,True,True,same_correct,"Give the user's reputation and up vote number of the user that commented ""fine, you win :)"".","SELECT u.Reputation, u.UpVotes 
+FROM comments c 
+JOIN users u ON c.UserId = u.Id 
+WHERE c.Text = 'fine, you win :)';","SELECT u.Reputation, u.UpVotes 
+FROM comments c 
+JOIN users u ON c.UserId = u.Id 
+WHERE c.Text = 'fine, you win :)';",,
+415,challenging,True,True,True,True,same_correct,What percentage of cards with format commander and legal status do not have a content warning?,"SELECT ROUND(100.0 * SUM(CASE WHEN c.`hasContentWarning` = 0 THEN 1 ELSE 0 END) / COUNT(*), 2) AS percentage
+FROM cards c
+JOIN legalities l ON c.uuid = l.uuid
+WHERE l.format = 'commander' AND l.status = 'Legal';","SELECT ROUND(100.0 * SUM(CASE WHEN c.`hasContentWarning` = 0 THEN 1 ELSE 0 END) / COUNT(*), 2) AS percentage
+FROM cards c
+JOIN legalities l ON c.uuid = l.uuid
+WHERE l.format = 'commander' AND l.status = 'Legal';",,
+911,simple,False,False,True,True,same_wrong,"Which of these circuits is located at a higher latitude, Silverstone Circuit, Hockenheimring or Hungaroring?","SELECT name, lat
+FROM circuits
+WHERE name IN ('Silverstone Circuit', 'Hockenheimring', 'Hungaroring')
+ORDER BY lat DESC
+LIMIT 1;","SELECT name, lat
+FROM circuits
+WHERE name IN ('Silverstone Circuit', 'Hockenheimring', 'Hungaroring')
+ORDER BY lat DESC
+LIMIT 1;",,
+1256,moderate,True,True,True,True,same_correct,How many patients with a abnormal C-reactive protein don't have their data recorded?,"SELECT COUNT(DISTINCT p.ID)
+FROM Patient p
+JOIN Laboratory l ON p.ID = l.ID
+WHERE l.CRP = '+'
+  AND p.Description IS NULL;","SELECT COUNT(DISTINCT p.ID)
+FROM Patient p
+JOIN Laboratory l ON p.ID = l.ID
+WHERE l.CRP = '+'
+  AND p.Description IS NULL;",,
+1028,challenging,True,True,True,True,same_correct,"In Scotland Premier League, which away team won the most during the 2010 season?","SELECT t.team_long_name
+FROM Match m
+JOIN Team t ON m.away_team_api_id = t.team_api_id
+JOIN League l ON m.league_id = l.id
+WHERE l.name = 'Scotland Premier League'
+  AND m.season = '2009/2010'
+  AND m.away_team_goal > m.home_team_goal
+GROUP BY t.team_long_name
+ORDER BY COUNT(*) DESC
+LIMIT 1;","SELECT t.team_long_name
+FROM Match m
+JOIN Team t ON m.away_team_api_id = t.team_api_id
+JOIN League l ON m.league_id = l.id
+WHERE l.name = 'Scotland Premier League'
+  AND m.season = '2009/2010'
+  AND m.away_team_goal > m.home_team_goal
+GROUP BY t.team_long_name
+ORDER BY COUNT(*) DESC
+LIMIT 1;",,
+937,simple,False,False,True,True,same_wrong,What's the finish time for the driver who ranked second in 2008's AustChineseralian Grand Prix?,"SELECT r.time 
+FROM results r 
+JOIN races ra ON r.raceId = ra.raceId 
+JOIN drivers d ON r.driverId = d.driverId 
+WHERE ra.name = 'Chinese Grand Prix' 
+  AND ra.year = 2008 
+  AND r.positionOrder = 2;","SELECT r.time 
+FROM results r 
+JOIN races ra ON r.raceId = ra.raceId 
+JOIN drivers d ON r.driverId = d.driverId 
+WHERE ra.name = 'Chinese Grand Prix' 
+  AND ra.year = 2008 
+  AND r.positionOrder = 2;",,
+908,simple,False,False,True,True,same_wrong,"What is the most laps f1 races had? Name the race, year and circuit location where the races with most laps was hosted.","SELECT r.name AS race, r.year, c.location
+FROM races r
+JOIN circuits c ON r.circuitId = c.circuitId
+JOIN results res ON r.raceId = res.raceId
+GROUP BY r.raceId
+ORDER BY MAX(res.laps) DESC
+LIMIT 1;","SELECT r.name AS race, r.year, c.location
+FROM races r
+JOIN circuits c ON r.circuitId = c.circuitId
+JOIN results res ON r.raceId = res.raceId
+GROUP BY r.raceId
+ORDER BY MAX(res.laps) DESC
+LIMIT 1;",,
+1496,simple,True,True,True,True,same_correct,Which client segment consumed the least in September 2013?,"SELECT c.Segment
+FROM customers c
+JOIN yearmonth ym ON c.CustomerID = ym.CustomerID
+WHERE ym.Date = '201309'
+GROUP BY c.Segment
+ORDER BY SUM(ym.Consumption) ASC
+LIMIT 1;","SELECT c.Segment
+FROM customers c
+JOIN yearmonth ym ON c.CustomerID = ym.CustomerID
+WHERE ym.Date = '201309'
+GROUP BY c.Segment
+ORDER BY SUM(ym.Consumption) ASC
+LIMIT 1;",,
+673,simple,True,True,True,True,same_correct,What is the average number of posts voted by the oldest users?,"SELECT AVG(v.PostId) 
+FROM votes v 
+JOIN users u ON v.UserId = u.Id 
+WHERE u.Age = (SELECT MAX(Age) FROM users);","SELECT AVG(v.PostId) 
+FROM votes v 
+JOIN users u ON v.UserId = u.Id 
+WHERE u.Age = (SELECT MAX(Age) FROM users);",,
+532,simple,True,True,True,True,same_correct,Please list the display names of all the users whose accounts were created in the year 2011.,"SELECT DisplayName FROM users WHERE strftime('%Y', CreationDate) = '2011';","SELECT DisplayName FROM users WHERE strftime('%Y', CreationDate) = '2011';",,
+376,simple,False,False,True,True,same_wrong,What are the card layout of cards with keyword of flying?,SELECT `layout` FROM cards WHERE keywords LIKE '%Flying%';,SELECT `layout` FROM cards WHERE keywords LIKE '%Flying%';,,
+1514,simple,False,False,True,True,same_wrong,What kind of currency did the customer paid at 16:25:00 in 2012/8/24?,"SELECT c.Currency 
+FROM transactions_1k t 
+JOIN customers c ON t.CustomerID = c.CustomerID 
+WHERE t.Time = '16:25:00' AND t.Date = '2012-08-24';","SELECT c.Currency 
+FROM transactions_1k t 
+JOIN customers c ON t.CustomerID = c.CustomerID 
+WHERE t.Time = '16:25:00' AND t.Date = '2012-08-24';",,
+809,simple,True,True,True,True,same_correct,What is the publisher name of the superhero ID 38?,"SELECT p.publisher_name 
+FROM superhero s 
+JOIN publisher p ON s.publisher_id = p.id 
+WHERE s.id = 38;","SELECT p.publisher_name 
+FROM superhero s 
+JOIN publisher p ON s.publisher_id = p.id 
+WHERE s.id = 38;",,
+1276,simple,True,True,True,True,same_correct,"For the patients who have an abnormal level of anti-DNA, please list the diseases they are diagnosed with.","SELECT DISTINCT p.Diagnosis 
+FROM Patient p 
+JOIN Laboratory l ON p.ID = l.ID 
+WHERE l.DNA >= 8;","SELECT DISTINCT p.Diagnosis 
+FROM Patient p 
+JOIN Laboratory l ON p.ID = l.ID 
+WHERE l.DNA >= 8;",,
+1438,simple,True,True,True,True,same_correct,"Please indicate the college of the person whose first name is Katy with the link to the major ""rec1N0upiVLy5esTO"".","SELECT m.college 
+FROM major m 
+JOIN member mem ON m.major_id = mem.link_to_major 
+WHERE mem.first_name = 'Katy' 
+AND mem.link_to_major = 'rec1N0upiVLy5esTO';","SELECT m.college 
+FROM major m 
+JOIN member mem ON m.major_id = mem.link_to_major 
+WHERE mem.first_name = 'Katy' 
+AND mem.link_to_major = 'rec1N0upiVLy5esTO';",,
+359,simple,False,False,True,True,same_wrong,"What is the type of the card ""Ancestor's Chosen"" as originally printed?","SELECT `originalType` FROM cards WHERE name = ""Ancestor's Chosen"";","SELECT `originalType` FROM cards WHERE name = ""Ancestor's Chosen"";",,
+182,moderate,False,False,True,True,same_wrong,How many male customers who were born between 1974 and 1976 have made a payment on their home in excess of $4000?,"SELECT COUNT(DISTINCT c.client_id)
+FROM client c
+JOIN disp d ON c.client_id = d.client_id
+JOIN account a ON d.account_id = a.account_id
+JOIN trans t ON a.account_id = t.account_id
+WHERE c.gender = 'M'
+  AND c.birth_date BETWEEN '1974-01-01' AND '1976-12-31'
+  AND t.k_symbol = 'SIPO'
+  AND t.amount > 4000;","SELECT COUNT(DISTINCT c.client_id)
+FROM client c
+JOIN disp d ON c.client_id = d.client_id
+JOIN account a ON d.account_id = a.account_id
+JOIN trans t ON a.account_id = t.account_id
+WHERE c.gender = 'M'
+  AND c.birth_date BETWEEN '1974-01-01' AND '1976-12-31'
+  AND t.k_symbol = 'SIPO'
+  AND t.amount > 4000;",,
+133,simple,False,False,True,True,same_wrong,"In 1996, which districts have the highest unemployment rate? List their branch location and district name.","SELECT d.A2 AS district_name, d.A3 AS branch_location
+FROM district d
+ORDER BY d.A13 DESC
+LIMIT 1;","SELECT d.A2 AS district_name, d.A3 AS branch_location
+FROM district d
+ORDER BY d.A13 DESC
+LIMIT 1;",,
+1254,moderate,False,True,False,True,improved,How many patients with a normal Ig A level came to the hospital after 1990/1/1?,"SELECT COUNT(DISTINCT p.ID)
+FROM Patient p
+JOIN Laboratory l ON p.ID = l.ID
+WHERE l.IGA > 80 AND l.IGA < 500
+AND YEAR(p.`First Date`) >= 1990;","SELECT COUNT(DISTINCT p.ID)
+FROM Patient p
+JOIN Laboratory l ON p.ID = l.ID
+WHERE l.IGA > 80 AND l.IGA < 500
+AND strftime('%Y', p.`First Date`) >= '1990';",no such function: YEAR,
+1453,moderate,False,False,True,True,same_wrong,List the name of events with less than average parking cost.,"SELECT e.event_name
+FROM event e
+JOIN budget b ON e.event_id = b.link_to_event
+JOIN expense ex ON b.budget_id = ex.link_to_budget
+WHERE ex.cost < (
+    SELECT AVG(ex2.cost)
+    FROM expense ex2
+    JOIN budget b2 ON ex2.link_to_budget = b2.budget_id
+    WHERE b2.category = 'Parking'
+);","SELECT e.event_name
+FROM event e
+JOIN budget b ON e.event_id = b.link_to_event
+JOIN expense ex ON b.budget_id = ex.link_to_budget
+WHERE ex.cost < (
+    SELECT AVG(ex2.cost)
+    FROM expense ex2
+    JOIN budget b2 ON ex2.link_to_budget = b2.budget_id
+    WHERE b2.category = 'Parking'
+);",,
+1474,moderate,False,False,True,True,same_wrong,"Which customers, paying in CZK, consumed the most gas in 2011?","SELECT c.CustomerID, SUM(ym.Consumption) AS TotalConsumption
+FROM customers c
+JOIN yearmonth ym ON c.CustomerID = ym.CustomerID
+WHERE c.Currency = 'CZK'
+  AND ym.Date BETWEEN '201101' AND '201112'
+GROUP BY c.CustomerID
+ORDER BY TotalConsumption DESC;","SELECT c.CustomerID, SUM(ym.Consumption) AS TotalConsumption
+FROM customers c
+JOIN yearmonth ym ON c.CustomerID = ym.CustomerID
+WHERE c.Currency = 'CZK'
+  AND ym.Date BETWEEN '201101' AND '201112'
+GROUP BY c.CustomerID
+ORDER BY TotalConsumption DESC;",,
+1387,moderate,True,True,True,True,same_correct,Which student has been entrusted to manage the budget for the Yearly Kickoff?,"SELECT m.first_name, m.last_name
+FROM member m
+JOIN expense e ON m.member_id = e.link_to_member
+JOIN budget b ON e.link_to_budget = b.budget_id
+JOIN event ev ON b.link_to_event = ev.event_id
+WHERE ev.event_name = 'Yearly Kickoff';","SELECT m.first_name, m.last_name
+FROM member m
+JOIN expense e ON m.member_id = e.link_to_member
+JOIN budget b ON e.link_to_budget = b.budget_id
+JOIN event ev ON b.link_to_event = ev.event_id
+WHERE ev.event_name = 'Yearly Kickoff';",,
+737,simple,True,True,True,True,same_correct,What is Copycat's race?,"SELECT r.race 
+FROM superhero s 
+JOIN race r ON s.race_id = r.id 
+WHERE s.superhero_name = 'Copycat';","SELECT r.race 
+FROM superhero s 
+JOIN race r ON s.race_id = r.id 
+WHERE s.superhero_name = 'Copycat';",,
+891,simple,True,True,True,True,same_correct,Name all drivers in the 2010 Singapore Grand Prix order by their position stands.,"SELECT d.forename, d.surname
+FROM drivers d
+JOIN driverStandings ds ON d.driverId = ds.driverId
+JOIN races r ON ds.raceId = r.raceId
+WHERE r.name = 'Singapore Grand Prix' AND r.year = 2010
+ORDER BY ds.position;","SELECT d.forename, d.surname
+FROM drivers d
+JOIN driverStandings ds ON d.driverId = ds.driverId
+JOIN races r ON ds.raceId = r.raceId
+WHERE r.name = 'Singapore Grand Prix' AND r.year = 2010
+ORDER BY ds.position;",,
+691,simple,True,True,True,True,same_correct,Identify the number of adult users who have cast over 5000 upvotes.,"SELECT COUNT(*) 
+FROM users 
+WHERE Age BETWEEN 19 AND 65 
+  AND UpVotes > 5000;","SELECT COUNT(*) 
+FROM users 
+WHERE Age BETWEEN 19 AND 65 
+  AND UpVotes > 5000;",,
+639,challenging,True,True,True,True,same_correct,"Based on posts posted by Community, calculate the percentage of posts that use the R language.","SELECT 
+    (CAST(SUM(CASE WHEN p.Tags LIKE '%<r>%' THEN 1 ELSE 0 END) AS REAL) / COUNT(*)) * 100 AS percentage_r_posts
+FROM posts p
+JOIN users u ON p.OwnerUserId = u.Id
+WHERE u.DisplayName = 'Community';","SELECT 
+    (CAST(SUM(CASE WHEN p.Tags LIKE '%<r>%' THEN 1 ELSE 0 END) AS REAL) / COUNT(*)) * 100 AS percentage_r_posts
+FROM posts p
+JOIN users u ON p.OwnerUserId = u.Id
+WHERE u.DisplayName = 'Community';",,

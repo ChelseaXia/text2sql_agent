@@ -18,18 +18,28 @@ def _read_descriptions(db_path):
 
     for csv_path in sorted(description_dir.glob("*.csv")):
         table_descriptions = {}
-        with csv_path.open("r", encoding="utf-8-sig", newline="") as file:
-            reader = csv.DictReader(file)
-            for row in reader:
-                column = (row.get("original_column_name") or "").strip()
-                if not column:
-                    continue
-                parts = [
-                    (row.get("column_name") or "").strip(),
-                    (row.get("column_description") or "").strip(),
-                    (row.get("value_description") or "").strip(),
-                ]
-                table_descriptions[column] = " ".join(part for part in parts if part)
+        reader = None
+        last_error = None
+        for encoding in ("utf-8-sig", "latin-1"):
+            try:
+                with csv_path.open("r", encoding=encoding, newline="") as file:
+                    reader = list(csv.DictReader(file))
+                break
+            except UnicodeDecodeError as exc:
+                last_error = exc
+        if reader is None:
+            raise last_error
+
+        for row in reader:
+            column = (row.get("original_column_name") or "").strip()
+            if not column:
+                continue
+            parts = [
+                (row.get("column_name") or "").strip(),
+                (row.get("column_description") or "").strip(),
+                (row.get("value_description") or "").strip(),
+            ]
+            table_descriptions[column] = " ".join(part for part in parts if part)
         descriptions[csv_path.stem] = table_descriptions
     return descriptions
 

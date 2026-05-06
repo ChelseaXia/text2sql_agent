@@ -5,13 +5,13 @@ import json
 from pathlib import Path
 
 from text2sql.config import RESULTS_DIR
-from text2sql.data import load_bird_dev
+from text2sql.data import resolve_eval_samples
 from text2sql.db import run_sql, same_result
 from text2sql.eval import compute_metrics
 from text2sql.llm import call_llm
 from text2sql.pipelines.naive import extract_sql
 from text2sql.prompts.generation import build_linked_prompt
-from text2sql.schema.linker import DEFAULT_TOP_K, SchemaLinker
+from text2sql.schema.linker import DEFAULT_LINKER_MODE, DEFAULT_TOP_K, SchemaLinker
 
 METHOD_NAME = "schema_linked_promptfix"
 DEFAULT_PREDICTIONS_PATH = RESULTS_DIR / "day3_schema_table_linked_predictions.jsonl"
@@ -51,7 +51,23 @@ def load_day2_comparison(day3_metrics):
     }
 
 
-def run_schema_linked(samples, predictions_path, metrics_path, debug_path, top_k=DEFAULT_TOP_K):
+def build_schema_linker(db_path, top_k, schema_linker_mode, embedding_model_path):
+    return SchemaLinker(
+        db_path,
+        mode=schema_linker_mode,
+        dense_model_path=embedding_model_path,
+    )
+
+
+def run_schema_linked(
+    samples,
+    predictions_path,
+    metrics_path,
+    debug_path,
+    top_k=DEFAULT_TOP_K,
+    schema_linker_mode=DEFAULT_LINKER_MODE,
+    embedding_model_path=None,
+):
     RESULTS_DIR.mkdir(parents=True, exist_ok=True)
     linker_cache = {}
     records = []
@@ -60,7 +76,12 @@ def run_schema_linked(samples, predictions_path, metrics_path, debug_path, top_k
         for index, sample in enumerate(samples, start=1):
             db_path = sample["db_path"]
             if db_path not in linker_cache:
-                linker_cache[db_path] = SchemaLinker(db_path)
+                linker_cache[db_path] = build_schema_linker(
+                    db_path,
+                    top_k,
+                    schema_linker_mode,
+                    embedding_model_path,
+                )
 
             linked_items, linked_schema_text = linker_cache[db_path].retrieve(sample["question"], sample["evidence"], top_k=top_k)
             retrieved_columns = retrieved_column_names(linked_items)
@@ -92,17 +113,25 @@ def run_schema_linked(samples, predictions_path, metrics_path, debug_path, top_k
             }
             gold_result = run_sql(sample["gold_sql"], db_path)
             ex = bool(pred_result["success"] and gold_result["success"] and same_result(pred_result["rows"], gold_result["rows"]))
+            failure_reason = None if pred_result["success"] else (llm_error or pred_result["error"] or "Unknown prediction failure")
 
             record = {
                 "sample_id": sample["sample_id"],
                 "db_id": sample["db_id"],
+                "db_path": db_path,
                 "difficulty": sample["difficulty"],
                 "question": sample["question"],
                 "evidence": sample["evidence"],
                 "gold_sql": sample["gold_sql"],
                 "pred_sql": pred_sql,
+                "predicted_sql": pred_sql,
+                "final_sql": pred_sql,
                 "pred_success": pred_result["success"],
+                "is_executable": pred_result["success"],
                 "gold_success": gold_result["success"],
+                "error": failure_reason,
+                "failure_reason": failure_reason,
+                "llm_error": llm_error,
                 "pred_error": llm_error or pred_result["error"],
                 "gold_error": gold_result["error"],
                 "pred_row_count": len(pred_result["rows"]),
@@ -110,8 +139,10 @@ def run_schema_linked(samples, predictions_path, metrics_path, debug_path, top_k
                 "pred_rows_preview": pred_result["rows"][:5],
                 "gold_rows_preview": gold_result["rows"][:5],
                 "ex": ex,
+                "is_correct": ex,
                 "raw_response": raw_response,
                 "retrieved_columns": retrieved_columns,
+                "schema_linker_mode": schema_linker_mode,
                 "method": METHOD_NAME,
             }
             predictions_file.write(json.dumps(record, ensure_ascii=False) + "\n")
@@ -135,12 +166,16 @@ _retrieved_column_names = retrieved_column_names
 _load_day2_comparison = load_day2_comparison
 
 
-def print_debug_preview(db_id, limit, top_k):
-    samples = load_bird_dev(limit=limit, db_id=db_id)
+def print_debug_preview(db_id, limit, top_k, schema_linker_mode=DEFAULT_LINKER_MODE, embedding_model_path=None):
+    samples = resolve_eval_samples(limit=limit, db_id=db_id)
     if not samples:
         print("No samples found.")
         return
-    linker = SchemaLinker(samples[0]["db_path"])
+    linker = SchemaLinker(
+        samples[0]["db_path"],
+        mode=schema_linker_mode,
+        dense_model_path=embedding_model_path,
+    )
     for sample in samples:
         linked_items, _ = linker.retrieve(sample["question"], sample["evidence"], top_k=top_k)
         print(f"\nsample_id={sample['sample_id']} difficulty={sample['difficulty']}")
@@ -149,7 +184,7 @@ def print_debug_preview(db_id, limit, top_k):
             print(f"- {column}")
 
 
-def write_linking_debug(samples, debug_path, top_k):
+def write_linking_debug(samples, debug_path, top_k, schema_linker_mode=DEFAULT_LINKER_MODE, embedding_model_path=None):
     RESULTS_DIR.mkdir(parents=True, exist_ok=True)
     linker_cache = {}
     total = 0
@@ -158,7 +193,11 @@ def write_linking_debug(samples, debug_path, top_k):
             total += 1
             db_path = sample["db_path"]
             if db_path not in linker_cache:
-                linker_cache[db_path] = SchemaLinker(db_path)
+                linker_cache[db_path] = SchemaLinker(
+                    db_path,
+                    mode=schema_linker_mode,
+                    dense_model_path=embedding_model_path,
+                )
             linked_items, linked_schema_text = linker_cache[db_path].retrieve(sample["question"], sample["evidence"], top_k=top_k)
             debug_file.write(
                 json.dumps(
@@ -180,9 +219,12 @@ def write_linking_debug(samples, debug_path, top_k):
 
 def parse_args():
     parser = argparse.ArgumentParser(description="Run schema-linked baseline.")
-    parser.add_argument("--db-id", default="california_schools")
-    parser.add_argument("--limit", type=int, default=50)
+    parser.add_argument("--db-id")
+    parser.add_argument("--limit", type=int)
+    parser.add_argument("--manifest", type=Path)
     parser.add_argument("--top-k", type=int, default=DEFAULT_TOP_K)
+    parser.add_argument("--schema-linker-mode", choices=("hybrid", "bm25"), default=DEFAULT_LINKER_MODE)
+    parser.add_argument("--embedding-model-path", type=Path)
     parser.add_argument("--predictions-output", type=Path, default=DEFAULT_PREDICTIONS_PATH)
     parser.add_argument("--metrics-output", type=Path, default=DEFAULT_METRICS_PATH)
     parser.add_argument("--debug-output", type=Path, default=DEFAULT_DEBUG_PATH)
@@ -194,6 +236,10 @@ def parse_args():
 
 def main():
     args = parse_args()
+    if args.manifest is None and args.db_id is None:
+        args.db_id = "california_schools"
+    if args.manifest is None and args.limit is None:
+        args.limit = 50
     if args.promptfix:
         if args.predictions_output == DEFAULT_PREDICTIONS_PATH:
             args.predictions_output = DEFAULT_PROMPTFIX_PREDICTIONS_PATH
@@ -202,14 +248,28 @@ def main():
         if args.debug_output == DEFAULT_DEBUG_PATH:
             args.debug_output = DEFAULT_PROMPTFIX_DEBUG_PATH
     if args.debug_preview:
-        print_debug_preview(args.db_id, args.debug_preview, args.top_k)
+        print_debug_preview(args.db_id, args.debug_preview, args.top_k, args.schema_linker_mode, args.embedding_model_path)
         return
-    samples = load_bird_dev(limit=args.limit, db_id=args.db_id)
+    samples = resolve_eval_samples(limit=args.limit, db_id=args.db_id, manifest_path=args.manifest)
     if args.debug_only:
-        summary = write_linking_debug(samples=samples, debug_path=args.debug_output, top_k=args.top_k)
+        summary = write_linking_debug(
+            samples=samples,
+            debug_path=args.debug_output,
+            top_k=args.top_k,
+            schema_linker_mode=args.schema_linker_mode,
+            embedding_model_path=args.embedding_model_path,
+        )
         print(json.dumps(summary, ensure_ascii=False, indent=2))
         return
-    summary = run_schema_linked(samples, args.predictions_output, args.metrics_output, args.debug_output, args.top_k)
+    summary = run_schema_linked(
+        samples,
+        args.predictions_output,
+        args.metrics_output,
+        args.debug_output,
+        args.top_k,
+        args.schema_linker_mode,
+        args.embedding_model_path,
+    )
     print(json.dumps(summary, ensure_ascii=False, indent=2))
 
 

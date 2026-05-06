@@ -61,8 +61,11 @@ def _join_key_edges(selected_tables, all_items):
             continue
 
         fk_ref = item.get("fk_ref")
-        if fk_ref and fk_ref["to_table"] in selected_tables:
-            explicit_edges.add((item["table"], item["column"], fk_ref["to_table"], fk_ref["to_column"]))
+        if fk_ref:
+            to_table = fk_ref.get("to_table")
+            to_column = fk_ref.get("to_column")
+            if to_table in selected_tables and item.get("column") and to_column:
+                explicit_edges.add((item["table"], item["column"], to_table, to_column))
 
         group = _normalized_join_group(item["column"])
         if group and is_join_key(item):

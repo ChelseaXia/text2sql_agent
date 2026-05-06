@@ -1,0 +1,97 @@
+{
+  "total": 1534,
+  "ex_count": 858,
+  "vsr_count": 1500,
+  "gold_success_count": 1529,
+  "EX": 0.559322033898305,
+  "VSR": 0.9778357235984355,
+  "difficulty_breakdown": {
+    "simple": {
+      "sample_count": 860,
+      "vsr_count": 855,
+      "ex_count": 562,
+      "VSR": 0.9941860465116279,
+      "EX": 0.6534883720930232
+    },
+    "moderate": {
+      "sample_count": 443,
+      "vsr_count": 432,
+      "ex_count": 234,
+      "VSR": 0.9751693002257337,
+      "EX": 0.5282167042889391
+    },
+    "challenging": {
+      "sample_count": 231,
+      "vsr_count": 213,
+      "ex_count": 62,
+      "VSR": 0.922077922077922,
+      "EX": 0.2683982683982684
+    }
+  },
+  "finish_count": 0,
+  "no_finish_count": 0,
+  "finish_rejected_count": 0,
+  "executed_but_not_finished_count": 0,
+  "comparison_with_day2": {
+    "naive_full_schema": {
+      "total": 50,
+      "VSR": 0.86,
+      "EX": 0.26,
+      "difficulty_breakdown": {
+        "simple": {
+          "sample_count": 15,
+          "vsr_count": 14,
+          "ex_count": 9,
+          "VSR": 0.9333333333333333,
+          "EX": 0.6
+        },
+        "moderate": {
+          "sample_count": 16,
+          "vsr_count": 16,
+          "ex_count": 4,
+          "VSR": 1.0,
+          "EX": 0.25
+        },
+        "challenging": {
+          "sample_count": 19,
+          "vsr_count": 13,
+          "ex_count": 0,
+          "VSR": 0.6842105263157895,
+          "EX": 0.0
+        }
+      }
+    },
+    "schema_linked_promptfix": {
+      "total": 1534,
+      "VSR": 0.9778357235984355,
+      "EX": 0.559322033898305,
+      "difficulty_breakdown": {
+        "simple": {
+          "sample_count": 860,
+          "vsr_count": 855,
+          "ex_count": 562,
+          "VSR": 0.9941860465116279,
+          "EX": 0.6534883720930232
+        },
+        "moderate": {
+          "sample_count": 443,
+          "vsr_count": 432,
+          "ex_count": 234,
+          "VSR": 0.9751693002257337,
+          "EX": 0.5282167042889391
+        },
+        "challenging": {
+          "sample_count": 231,
+          "vsr_count": 213,
+          "ex_count": 62,
+          "VSR": 0.922077922077922,
+          "EX": 0.2683982683982684
+        }
+      }
+    },
+    "delta": {
+      "VSR": 0.11783572359843553,
+      "EX": 0.29932203389830503
+    }
+  }
+}

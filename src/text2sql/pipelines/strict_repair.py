@@ -6,13 +6,13 @@ import json
 from pathlib import Path
 
 from text2sql.config import RESULTS_DIR
-from text2sql.data import get_db_path
+from text2sql.data import get_db_path, load_eval_manifest
 from text2sql.db import run_sql, same_result
 from text2sql.eval import compute_metrics, load_jsonl
 from text2sql.llm import call_llm
 from text2sql.pipelines.naive import extract_sql
 from text2sql.prompts.repair import build_repair_prompt
-from text2sql.schema.linker import SchemaLinker
+from text2sql.schema.linker import DEFAULT_LINKER_MODE, SchemaLinker
 
 METHOD_NAME = "strict_execution_repair"
 DEFAULT_DAY3_INPUT_PATH = RESULTS_DIR / "day3_schema_table_linked_promptfix_predictions.jsonl"
@@ -77,9 +77,46 @@ def write_pairwise_compare(path, rows):
             writer.writerow({name: row.get(name) for name in fieldnames})
 
 
-def run_strict_execution_repair(day3_predictions_path, predictions_path, traces_path, metrics_path, pairwise_path, top_k_schema, max_repair_rounds):
-    RESULTS_DIR.mkdir(parents=True, exist_ok=True)
+def resolve_day3_records(day3_predictions_path, manifest_path=None, db_id=None, limit=None):
     day3_records = load_jsonl(day3_predictions_path)
+    if manifest_path is None:
+        return day3_records
+
+    manifest_samples = load_eval_manifest(manifest_path, db_id=db_id, limit=limit)
+    day3_by_sample_id = {row["sample_id"]: row for row in day3_records}
+    missing = [sample["sample_id"] for sample in manifest_samples if sample["sample_id"] not in day3_by_sample_id]
+    if missing:
+        raise KeyError(f"Missing sample_ids in Day 3 input for manifest: {missing[:10]}")
+
+    aligned_records = []
+    for sample in manifest_samples:
+        row = dict(day3_by_sample_id[sample["sample_id"]])
+        row["db_id"] = sample["db_id"]
+        row["db_path"] = sample["db_path"]
+        row["difficulty"] = sample["difficulty"]
+        row["question"] = sample["question"]
+        row["gold_sql"] = sample["gold_sql"]
+        row["evidence"] = sample["evidence"]
+        aligned_records.append(row)
+    return aligned_records
+
+
+def run_strict_execution_repair(
+    day3_predictions_path,
+    predictions_path,
+    traces_path,
+    metrics_path,
+    pairwise_path,
+    top_k_schema,
+    max_repair_rounds,
+    manifest_path=None,
+    db_id=None,
+    limit=None,
+    schema_linker_mode=DEFAULT_LINKER_MODE,
+    embedding_model_path=None,
+):
+    RESULTS_DIR.mkdir(parents=True, exist_ok=True)
+    day3_records = resolve_day3_records(day3_predictions_path, manifest_path=manifest_path, db_id=db_id, limit=limit)
     linker_cache = {}
     metric_rows = []
     pairwise_rows = []
@@ -90,7 +127,7 @@ def run_strict_execution_repair(day3_predictions_path, predictions_path, traces_
 
     with predictions_path.open("w", encoding="utf-8") as predictions_file, traces_path.open("w", encoding="utf-8") as traces_file:
         for index, day3_row in enumerate(day3_records, start=1):
-            db_path = str(get_db_path(day3_row["db_id"]))
+            db_path = day3_row.get("db_path") or str(get_db_path(day3_row["db_id"]))
             initial_pred_sql = day3_row.get("pred_sql", "")
             initial_success = bool(day3_row.get("pred_success"))
             initial_error = day3_row.get("pred_error")
@@ -120,7 +157,11 @@ def run_strict_execution_repair(day3_predictions_path, predictions_path, traces_
                 repaired = True
                 repaired_sample_count += 1
                 if db_path not in linker_cache:
-                    linker_cache[db_path] = SchemaLinker(db_path)
+                    linker_cache[db_path] = SchemaLinker(
+                        db_path,
+                        mode=schema_linker_mode,
+                        dense_model_path=embedding_model_path,
+                    )
                 _, linked_schema_text = linker_cache[db_path].retrieve(day3_row["question"], day3_row.get("evidence", ""), top_k=top_k_schema)
 
                 previous_sql = initial_pred_sql
@@ -167,28 +208,35 @@ def run_strict_execution_repair(day3_predictions_path, predictions_path, traces_
             prediction_record = {
                 "sample_id": day3_row["sample_id"],
                 "db_id": day3_row["db_id"],
+                "db_path": db_path,
                 "difficulty": day3_row["difficulty"],
                 "question": day3_row["question"],
                 "evidence": day3_row.get("evidence", ""),
                 "gold_sql": gold_sql,
                 "initial_pred_sql": initial_pred_sql,
                 "final_pred_sql": final_pred_sql,
+                "predicted_sql": final_pred_sql,
                 "final_sql": final_pred_sql,
                 "initial_success": initial_success,
                 "final_success": final_success,
                 "pred_success": final_success,
+                "is_executable": final_success,
                 "day3_pred_success": initial_success,
+                "error": None if final_success else (final_error or initial_error or "Unknown prediction failure"),
+                "failure_reason": None if final_success else (final_error or initial_error or "Unknown prediction failure"),
                 "initial_error": initial_error,
                 "final_error": final_error,
                 "repaired": repaired,
                 "repair_rounds": repair_rounds,
                 "gold_success": gold_result["success"],
                 "ex": strict_ex,
+                "is_correct": strict_ex,
                 "day3_ex": day3_ex,
                 "pred_row_count": final_row_count,
                 "gold_row_count": len(gold_result["rows"]),
                 "pred_rows_preview": final_rows_preview,
                 "gold_rows_preview": gold_result["rows"][:5],
+                "schema_linker_mode": schema_linker_mode,
                 "method": METHOD_NAME,
             }
             trace_record = {
@@ -244,6 +292,11 @@ run_day5_5_from_day3 = run_strict_execution_repair
 def parse_args():
     parser = argparse.ArgumentParser(description="Run strict repair from Day 3 predictions.")
     parser.add_argument("--day3-input", type=Path, default=DEFAULT_DAY3_INPUT_PATH)
+    parser.add_argument("--manifest", type=Path)
+    parser.add_argument("--db-id")
+    parser.add_argument("--limit", type=int)
+    parser.add_argument("--schema-linker-mode", choices=("hybrid", "bm25"), default=DEFAULT_LINKER_MODE)
+    parser.add_argument("--embedding-model-path", type=Path)
     parser.add_argument("--predictions-output", type=Path, default=DEFAULT_PREDICTIONS_PATH)
     parser.add_argument("--traces-output", type=Path, default=DEFAULT_TRACES_PATH)
     parser.add_argument("--metrics-output", type=Path, default=DEFAULT_METRICS_PATH)
@@ -263,6 +316,11 @@ def main():
         pairwise_path=args.pairwise_output,
         top_k_schema=args.top_k_schema,
         max_repair_rounds=args.max_repair_rounds,
+        manifest_path=args.manifest,
+        db_id=args.db_id,
+        limit=args.limit,
+        schema_linker_mode=args.schema_linker_mode,
+        embedding_model_path=args.embedding_model_path,
     )
     print(json.dumps(summary, ensure_ascii=False, indent=2))
 

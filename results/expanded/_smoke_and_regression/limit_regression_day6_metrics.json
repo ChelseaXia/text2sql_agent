@@ -1,0 +1,97 @@
+{
+  "total": 60,
+  "ex_count": 31,
+  "vsr_count": 58,
+  "gold_success_count": 60,
+  "EX": 0.5166666666666667,
+  "VSR": 0.9666666666666667,
+  "difficulty_breakdown": {
+    "simple": {
+      "sample_count": 41,
+      "vsr_count": 41,
+      "ex_count": 25,
+      "VSR": 1.0,
+      "EX": 0.6097560975609756
+    },
+    "moderate": {
+      "sample_count": 9,
+      "vsr_count": 8,
+      "ex_count": 3,
+      "VSR": 0.8888888888888888,
+      "EX": 0.3333333333333333
+    },
+    "challenging": {
+      "sample_count": 10,
+      "vsr_count": 9,
+      "ex_count": 3,
+      "VSR": 0.9,
+      "EX": 0.3
+    }
+  },
+  "finish_count": 0,
+  "no_finish_count": 0,
+  "finish_rejected_count": 0,
+  "executed_but_not_finished_count": 0,
+  "comparison_with_day2": {
+    "naive_full_schema": {
+      "total": 50,
+      "VSR": 0.86,
+      "EX": 0.26,
+      "difficulty_breakdown": {
+        "simple": {
+          "sample_count": 15,
+          "vsr_count": 14,
+          "ex_count": 9,
+          "VSR": 0.9333333333333333,
+          "EX": 0.6
+        },
+        "moderate": {
+          "sample_count": 16,
+          "vsr_count": 16,
+          "ex_count": 4,
+          "VSR": 1.0,
+          "EX": 0.25
+        },
+        "challenging": {
+          "sample_count": 19,
+          "vsr_count": 13,
+          "ex_count": 0,
+          "VSR": 0.6842105263157895,
+          "EX": 0.0
+        }
+      }
+    },
+    "schema_linked_promptfix": {
+      "total": 60,
+      "VSR": 0.9666666666666667,
+      "EX": 0.5166666666666667,
+      "difficulty_breakdown": {
+        "simple": {
+          "sample_count": 41,
+          "vsr_count": 41,
+          "ex_count": 25,
+          "VSR": 1.0,
+          "EX": 0.6097560975609756
+        },
+        "moderate": {
+          "sample_count": 9,
+          "vsr_count": 8,
+          "ex_count": 3,
+          "VSR": 0.8888888888888888,
+          "EX": 0.3333333333333333
+        },
+        "challenging": {
+          "sample_count": 10,
+          "vsr_count": 9,
+          "ex_count": 3,
+          "VSR": 0.9,
+          "EX": 0.3
+        }
+      }
+    },
+    "delta": {
+      "VSR": 0.10666666666666669,
+      "EX": 0.2566666666666667
+    }
+  }
+}

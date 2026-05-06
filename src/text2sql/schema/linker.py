@@ -3,6 +3,7 @@
 import math
 import re
 from collections import Counter
+from pathlib import Path
 
 import numpy as np
 
@@ -10,6 +11,11 @@ from text2sql.schema.items import build_schema_items, format_table_linked_schema
 
 DEFAULT_TOP_K = 30
 DEFAULT_DENSE_MODEL = "sentence-transformers/all-MiniLM-L6-v2"
+DEFAULT_LINKER_MODE = "hybrid"
+
+
+class SchemaLinkerConfigurationError(RuntimeError):
+    pass
 
 
 def tokenize(text):
@@ -96,21 +102,43 @@ class BM25Index:
 
 
 class SchemaLinker:
-    def __init__(self, db_path, dense_model_name=DEFAULT_DENSE_MODEL, rrf_k=60):
+    def __init__(
+        self,
+        db_path,
+        dense_model_name=DEFAULT_DENSE_MODEL,
+        dense_model_path=None,
+        mode=DEFAULT_LINKER_MODE,
+        rrf_k=60,
+    ):
         self.db_path = db_path
         self.items = build_schema_items(db_path)
         self.documents = [item_to_search_text(item) for item in self.items]
         self.bm25 = BM25Index(self.documents)
         self.dense_model_name = dense_model_name
+        self.dense_model_path = str(Path(dense_model_path).expanduser()) if dense_model_path else None
+        self.mode = mode
         self.rrf_k = rrf_k
         self._dense_model = None
         self._embeddings = None
+
+        if self.mode not in {"hybrid", "bm25"}:
+            raise ValueError(f"Unsupported schema linker mode: {self.mode}")
 
     def _load_dense_model(self):
         if self._dense_model is None:
             from sentence_transformers import SentenceTransformer
 
-            self._dense_model = SentenceTransformer(self.dense_model_name)
+            model_ref = self.dense_model_path or self.dense_model_name
+            try:
+                self._dense_model = SentenceTransformer(model_ref)
+            except Exception as exc:
+                guidance = (
+                    "Failed to load schema linker dense model. "
+                    "Pre-download the SentenceTransformer model, or pass a local path via "
+                    "--embedding-model-path, or use --schema-linker-mode bm25 for smoke-only runs. "
+                    f"Requested model reference: {model_ref}"
+                )
+                raise SchemaLinkerConfigurationError(guidance) from exc
         return self._dense_model
 
     def _get_embeddings(self):
@@ -160,6 +188,12 @@ class SchemaLinker:
         query = f"{question}\n{evidence or ''}"
         query_tokens = set(tokenize(query))
         bm25_rank = self._rank_from_scores(self.bm25.scores(query))
+
+        if self.mode == "bm25":
+            selected_indexes = bm25_rank[:top_k]
+            selected_items = [self.items[index] for index in selected_indexes]
+            return selected_items, format_table_linked_schema_text(selected_items, self.items)
+
         dense_rank = self._rank_from_scores(self._dense_scores(query))
         fused_scores = Counter()
 
