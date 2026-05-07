@@ -20,6 +20,7 @@ from text2sql.prompts.repair import build_repair_prompt
 from text2sql.schema.items import quote_identifier
 from text2sql.schema.linker import DEFAULT_LINKER_MODE, DEFAULT_TOP_K
 from text2sql.agents.autonomous_tool_policy import select_autonomous_tool_call
+from text2sql.agents.memory import EpisodicMemory, NullWorkingMemory, WorkingMemory as MemoryWorkingMemory
 
 METHOD_NAME = "suspicion_triggered_iterative_agent"
 AUTONOMOUS_METHOD_NAME = "llm_decided_iterative_agent"
@@ -35,6 +36,7 @@ DEFAULT_AUTONOMOUS_MAX_TOOL_CALLS = 10
 DEFAULT_AUTONOMOUS_MAX_EXECUTE_CALLS = 3
 DEFAULT_AUTONOMOUS_MAX_VALUE_SEARCH_CALLS = 2
 DEFAULT_SAMPLE_ROWS = 5
+MEMORY_MODES = {"off", "working", "episodic"}
 
 LIST_INTENT_TERMS = {
     "list",
@@ -678,7 +680,19 @@ def search_relevant_column_values(tools, selected_tables, searched_values):
     return observations
 
 
-def make_trace_event(sample, step, action, tool_input, observation, suspicion_reason, working_memory, current_sql, final_sql=None, is_correct=None):
+def make_trace_event(
+    sample,
+    step,
+    action,
+    tool_input,
+    observation,
+    suspicion_reason,
+    working_memory,
+    current_sql,
+    final_sql=None,
+    is_correct=None,
+    episodic_memory_summary=None,
+):
     return {
         "sample_id": sample["sample_id"],
         "question": sample["question"],
@@ -689,10 +703,59 @@ def make_trace_event(sample, step, action, tool_input, observation, suspicion_re
         "suspicion_reason": suspicion_reason,
         "scratchpad_summary": working_memory.summary(),
         "working_memory_summary": working_memory.compact(),
+        "episodic_memory_summary": episodic_memory_summary or {},
         "current_sql": current_sql,
         "final_sql": final_sql,
         "is_correct": is_correct,
     }
+
+
+def create_working_memory(memory_mode):
+    if memory_mode == "off":
+        return NullWorkingMemory()
+    return MemoryWorkingMemory()
+
+
+def summarize_episodic_memory(episodic_memory, sample, intent_plan=None):
+    if episodic_memory is None:
+        return {}
+    stats = episodic_memory.get_stats()
+    summary_text = episodic_memory.summarize_for_prompt(sample["question"], intent_plan=intent_plan)
+    return {
+        "db_id": stats["db_id"],
+        "summary": summary_text,
+        "stats": stats,
+    }
+
+
+def memory_context_text(memory_mode, working_memory, episodic_summary=None):
+    sections = []
+    if memory_mode in {"working", "episodic"}:
+        sections.append("Working memory:\n" + working_memory.summary())
+    if memory_mode == "episodic" and episodic_summary:
+        sections.append("Episodic memory for this db_id:\n" + episodic_summary.get("summary", ""))
+    return "\n\n".join(sections)
+
+
+def schema_text_with_memory(linked_schema_text, memory_text):
+    if not memory_text:
+        return linked_schema_text
+    return f"{linked_schema_text}\n\nMemory context (runtime observations only, no gold/evaluator feedback):\n{memory_text}"
+
+
+def write_memory_observation(working_memory, episodic_memory, sample, action, tool_input, observation):
+    event = {
+        "sample_id": sample["sample_id"],
+        "memory_ablation_order": sample.get("memory_ablation_order"),
+        "db_id": sample["db_id"],
+        "action": action,
+        "tool_input": tool_input,
+        "observation": observation,
+    }
+    if hasattr(working_memory, "tool_observation_history"):
+        working_memory.tool_observation_history.append(event)
+    if episodic_memory is not None:
+        episodic_memory.write_observation(event)
 
 
 def make_autonomous_trace_event(
@@ -782,17 +845,17 @@ def dispatch_autonomous_tool(tools, tool_name, args):
     raise ValueError(f"Unknown tool: {tool_name}")
 
 
-def generate_initial_sql(sample, linked_schema_text):
-    raw_response = call_llm(build_linked_prompt(sample, linked_schema_text))
+def generate_initial_sql(sample, linked_schema_text, memory_text=""):
+    raw_response = call_llm(build_linked_prompt(sample, schema_text_with_memory(linked_schema_text, memory_text)))
     return extract_sql(raw_response), raw_response
 
 
-def generate_targeted_repair_sql(sample, linked_schema_text, previous_sql, execution_error):
+def generate_targeted_repair_sql(sample, linked_schema_text, previous_sql, execution_error, memory_text=""):
     raw_response = call_llm(
         build_repair_prompt(
             question=sample["question"],
             evidence=sample.get("evidence", ""),
-            linked_schema_text=linked_schema_text,
+            linked_schema_text=schema_text_with_memory(linked_schema_text, memory_text),
             previous_sql=previous_sql,
             sqlite_error=execution_error,
         )
@@ -800,11 +863,17 @@ def generate_targeted_repair_sql(sample, linked_schema_text, previous_sql, execu
     return extract_sql(raw_response), raw_response
 
 
-def generate_revised_sql(sample, linked_schema_text, working_memory, current_sql, suspicion_reason):
+def generate_revised_sql(sample, linked_schema_text, working_memory, current_sql, suspicion_reason, episodic_memory_summary=None):
+    working_memory_summary = working_memory.summary()
+    if episodic_memory_summary:
+        working_memory_summary = (
+            f"{working_memory_summary}\n\n"
+            f"Episodic memory for this db_id:\n{episodic_memory_summary.get('summary', '')}"
+        )
     prompt = build_revision_prompt(
         sample=sample,
         linked_schema_text=linked_schema_text,
-        working_memory_summary=working_memory.summary(),
+        working_memory_summary=working_memory_summary,
         current_sql=current_sql,
         suspicion_reason=suspicion_reason,
     )
@@ -812,9 +881,17 @@ def generate_revised_sql(sample, linked_schema_text, working_memory, current_sql
     return extract_sql(raw_response), raw_response
 
 
-def run_one_sample(sample, schema_linker, max_steps=DEFAULT_MAX_STEPS, top_k_schema=DEFAULT_TOP_K):
+def run_one_sample(
+    sample,
+    schema_linker,
+    max_steps=DEFAULT_MAX_STEPS,
+    top_k_schema=DEFAULT_TOP_K,
+    memory_mode="working",
+    episodic_memory=None,
+):
     tools = IterativeAgentTools(sample, schema_linker, top_k_schema=top_k_schema)
-    working_memory = WorkingMemory()
+    working_memory = create_working_memory(memory_mode)
+    episodic_start_stats = episodic_memory.get_stats() if episodic_memory is not None else {}
     trace = []
     stats = {
         "tool_call_count": 0,
@@ -828,14 +905,26 @@ def run_one_sample(sample, schema_linker, max_steps=DEFAULT_MAX_STEPS, top_k_sch
         "intent_plan_success_count": 0,
         "working_memory_update_count": 0,
         "finish_count": 0,
+        "memory_hit_count": 0,
+        "memory_access_count": 0,
+        "memory_write_count": 0,
     }
     step_id = 1
+    episodic_summary = summarize_episodic_memory(episodic_memory, sample) if memory_mode == "episodic" else {}
 
     schema_observation = tools.retrieve_schema()
     stats["tool_call_count"] += 1
     selected_tables = schema_observation["selected_tables"]
     retrieved_columns = schema_observation["retrieved_columns"]
     linked_schema_text = schema_observation["linked_schema_text"]
+    write_memory_observation(
+        working_memory,
+        episodic_memory if memory_mode == "episodic" else None,
+        sample,
+        "retrieve_schema",
+        {"question": sample["question"], "db_id": sample["db_id"], "top_k_schema": top_k_schema},
+        schema_observation,
+    )
     trace.append(
         make_trace_event(
             sample,
@@ -846,12 +935,14 @@ def run_one_sample(sample, schema_linker, max_steps=DEFAULT_MAX_STEPS, top_k_sch
             None,
             working_memory,
             "",
+            episodic_memory_summary=episodic_summary,
         )
     )
     step_id += 1
 
     intent_plan, intent_raw_response, intent_error = generate_intent_plan(sample, linked_schema_text, selected_tables)
     working_memory.set_intent_plan(intent_plan)
+    episodic_summary = summarize_episodic_memory(episodic_memory, sample, intent_plan) if memory_mode == "episodic" else {}
     stats["intent_plan_success_count"] += 1 if intent_plan else 0
     trace.append(
         make_trace_event(
@@ -863,6 +954,7 @@ def run_one_sample(sample, schema_linker, max_steps=DEFAULT_MAX_STEPS, top_k_sch
             None,
             working_memory,
             "",
+            episodic_memory_summary=episodic_summary,
         )
     )
     step_id += 1
@@ -871,8 +963,9 @@ def run_one_sample(sample, schema_linker, max_steps=DEFAULT_MAX_STEPS, top_k_sch
     final_result = {"success": False, "rows": [], "error": "No SQL generated"}
     llm_error = None
     explored_suspicion_reasons = set()
+    initial_memory_text = memory_context_text(memory_mode, working_memory, episodic_summary)
     try:
-        current_sql, raw_response = generate_initial_sql(sample, linked_schema_text)
+        current_sql, raw_response = generate_initial_sql(sample, linked_schema_text, memory_text=initial_memory_text)
     except Exception as exc:
         llm_error = str(exc)
         working_memory.add_failed_sql("", llm_error)
@@ -887,6 +980,7 @@ def run_one_sample(sample, schema_linker, max_steps=DEFAULT_MAX_STEPS, top_k_sch
             None,
             working_memory,
             current_sql,
+            episodic_memory_summary=episodic_summary,
         )
     )
     step_id += 1
@@ -895,21 +989,31 @@ def run_one_sample(sample, schema_linker, max_steps=DEFAULT_MAX_STEPS, top_k_sch
         final_result = tools.execute_sql(current_sql)
         stats["tool_call_count"] += 1
         stats["execute_call_count"] += 1
+        execute_observation = {
+            "success": final_result["success"],
+            "row_count": len(final_result["rows"]),
+            "rows_preview": compact_rows(final_result["rows"]),
+            "error": final_result["error"],
+        }
+        write_memory_observation(
+            working_memory,
+            episodic_memory if memory_mode == "episodic" else None,
+            sample,
+            "execute_sql",
+            {"db_id": sample["db_id"], "sql": current_sql},
+            execute_observation,
+        )
         trace.append(
             make_trace_event(
                 sample,
                 step_id,
                 "execute_sql",
                 {"db_id": sample["db_id"], "sql": current_sql},
-                {
-                    "success": final_result["success"],
-                    "row_count": len(final_result["rows"]),
-                    "rows_preview": compact_rows(final_result["rows"]),
-                    "error": final_result["error"],
-                },
+                execute_observation,
                 None,
                 working_memory,
                 current_sql,
+                episodic_memory_summary=episodic_summary,
             )
         )
         step_id += 1
@@ -934,10 +1038,24 @@ def run_one_sample(sample, schema_linker, max_steps=DEFAULT_MAX_STEPS, top_k_sch
                     linked_schema_text,
                     original_sql,
                     execution_error,
+                    memory_text=memory_context_text(memory_mode, working_memory, episodic_summary),
                 )
                 repair_result = tools.execute_sql(repaired_sql)
                 stats["tool_call_count"] += 1
                 stats["execute_call_count"] += 1
+                write_memory_observation(
+                    working_memory,
+                    episodic_memory if memory_mode == "episodic" else None,
+                    sample,
+                    "execute_sql",
+                    {"db_id": sample["db_id"], "sql": repaired_sql, "repair": True},
+                    {
+                        "success": repair_result["success"],
+                        "row_count": len(repair_result["rows"]),
+                        "rows_preview": compact_rows(repair_result["rows"]),
+                        "error": repair_result["error"],
+                    },
+                )
             except Exception as exc:
                 repair_error = str(exc)
 
@@ -976,6 +1094,7 @@ def run_one_sample(sample, schema_linker, max_steps=DEFAULT_MAX_STEPS, top_k_sch
                     "execution_error",
                     working_memory,
                     current_sql,
+                    episodic_memory_summary=episodic_summary,
                 )
             )
             step_id += 1
@@ -990,6 +1109,7 @@ def run_one_sample(sample, schema_linker, max_steps=DEFAULT_MAX_STEPS, top_k_sch
                         working_memory,
                         original_sql,
                         "execution_error_after_failed_repair",
+                        episodic_memory_summary=episodic_summary,
                     )
                     current_sql = revised_sql
                     llm_error = None
@@ -1007,6 +1127,7 @@ def run_one_sample(sample, schema_linker, max_steps=DEFAULT_MAX_STEPS, top_k_sch
                         "execution_error_after_failed_repair",
                         working_memory,
                         current_sql,
+                        episodic_memory_summary=episodic_summary,
                     )
                 )
                 step_id += 1
@@ -1031,6 +1152,7 @@ def run_one_sample(sample, schema_linker, max_steps=DEFAULT_MAX_STEPS, top_k_sch
                     working_memory,
                     current_sql,
                     final_sql=current_sql,
+                    episodic_memory_summary=episodic_summary,
                 )
             )
             break
@@ -1055,6 +1177,7 @@ def run_one_sample(sample, schema_linker, max_steps=DEFAULT_MAX_STEPS, top_k_sch
                     working_memory,
                     current_sql,
                     final_sql=current_sql,
+                    episodic_memory_summary=episodic_summary,
                 )
             )
             break
@@ -1085,6 +1208,23 @@ def run_one_sample(sample, schema_linker, max_steps=DEFAULT_MAX_STEPS, top_k_sch
                     )
                 if matched_values:
                     working_memory.add_hypothesis("Use exact observed database values for entity and literal filters.")
+                grounding_observation = {
+                    "searched_value": searched_values,
+                    "matched_values": matched_values,
+                    "affected_columns": sorted(set(affected_columns))[:80],
+                    "observations": grounding_observations,
+                }
+                write_memory_observation(
+                    working_memory,
+                    episodic_memory if memory_mode == "episodic" else None,
+                    sample,
+                    "search_column_values",
+                    {
+                        "searched_value": searched_values,
+                        "selected_tables": selected_tables,
+                    },
+                    grounding_observation,
+                )
                 trace.append(
                     make_trace_event(
                         sample,
@@ -1094,15 +1234,11 @@ def run_one_sample(sample, schema_linker, max_steps=DEFAULT_MAX_STEPS, top_k_sch
                             "searched_value": searched_values,
                             "selected_tables": selected_tables,
                         },
-                        {
-                            "searched_value": searched_values,
-                            "matched_values": matched_values,
-                            "affected_columns": sorted(set(affected_columns))[:80],
-                            "observations": grounding_observations,
-                        },
+                        grounding_observation,
                         "literal_or_entity_may_not_match_database",
                         working_memory,
                         current_sql,
+                        episodic_memory_summary=episodic_summary,
                     )
                 )
                 step_id += 1
@@ -1132,6 +1268,14 @@ def run_one_sample(sample, schema_linker, max_steps=DEFAULT_MAX_STEPS, top_k_sch
                         tool_observation,
                     )
                 working_memory.add_hypothesis(choice.get("hypothesis"))
+                write_memory_observation(
+                    working_memory,
+                    episodic_memory if memory_mode == "episodic" else None,
+                    sample,
+                    choice.get("action"),
+                    choice,
+                    tool_observation,
+                )
                 trace.append(
                     make_trace_event(
                         sample,
@@ -1142,6 +1286,7 @@ def run_one_sample(sample, schema_linker, max_steps=DEFAULT_MAX_STEPS, top_k_sch
                         suspicion_reason,
                         working_memory,
                         current_sql,
+                        episodic_memory_summary=episodic_summary,
                     )
                 )
                 step_id += 1
@@ -1153,6 +1298,7 @@ def run_one_sample(sample, schema_linker, max_steps=DEFAULT_MAX_STEPS, top_k_sch
                 working_memory,
                 current_sql,
                 suspicion_reason,
+                episodic_memory_summary=episodic_summary,
             )
             current_sql = revised_sql
             llm_error = None
@@ -1170,6 +1316,7 @@ def run_one_sample(sample, schema_linker, max_steps=DEFAULT_MAX_STEPS, top_k_sch
                 suspicion_reason,
                 working_memory,
                 current_sql,
+                episodic_memory_summary=episodic_summary,
             )
         )
         step_id += 1
@@ -1195,6 +1342,7 @@ def run_one_sample(sample, schema_linker, max_steps=DEFAULT_MAX_STEPS, top_k_sch
                 final_sql,
                 final_sql=final_sql,
                 is_correct=ex,
+                episodic_memory_summary=episodic_summary,
             )
         )
 
@@ -1204,9 +1352,23 @@ def run_one_sample(sample, schema_linker, max_steps=DEFAULT_MAX_STEPS, top_k_sch
             event["is_correct"] = ex
 
     stats["working_memory_update_count"] = working_memory.update_count
+    episodic_stats = episodic_memory.get_stats() if episodic_memory is not None else {}
+    stats["memory_hit_count"] = max(0, episodic_stats.get("hit_count", 0) - episodic_start_stats.get("hit_count", 0))
+    stats["memory_access_count"] = max(0, episodic_stats.get("access_count", 0) - episodic_start_stats.get("access_count", 0))
+    stats["memory_write_count"] = (
+        max(0, episodic_stats.get("write_count", 0) - episodic_start_stats.get("write_count", 0))
+        if memory_mode == "episodic"
+        else working_memory.update_count
+    )
+    stats["memory_hit_rate"] = (
+        stats["memory_hit_count"] / stats["memory_access_count"]
+        if stats["memory_access_count"]
+        else 0.0
+    )
 
     record = {
         "sample_id": sample["sample_id"],
+        "memory_ablation_order": sample.get("memory_ablation_order"),
         "db_id": sample["db_id"],
         "db_path": sample["db_path"],
         "difficulty": sample["difficulty"],
@@ -1214,6 +1376,7 @@ def run_one_sample(sample, schema_linker, max_steps=DEFAULT_MAX_STEPS, top_k_sch
         "evidence": sample.get("evidence", ""),
         "gold_sql": sample["gold_sql"],
         "method": METHOD_NAME,
+        "memory_mode": memory_mode,
         "schema_linker_mode": DEFAULT_LINKER_MODE,
         "retrieved_columns": retrieved_columns,
         "selected_tables": selected_tables,
@@ -1233,6 +1396,7 @@ def run_one_sample(sample, schema_linker, max_steps=DEFAULT_MAX_STEPS, top_k_sch
         "is_correct": ex,
         "final_sql_source": "finish_tool" if stats["finish_count"] else "no_finish",
         "max_steps": max_steps,
+        "episodic_memory_stats": episodic_stats,
         "trace": trace,
         **stats,
     }
@@ -1273,6 +1437,8 @@ def run_one_sample_autonomous(
         "argument_error_count": 0,
         "budget_exceeded_count": 0,
         "premature_finish_count": 0,
+        "memory_hit_count": 0,
+        "memory_write_count": 0,
     }
     selected_tables = []
     retrieved_columns = []
@@ -1548,6 +1714,7 @@ def run_one_sample_autonomous(
 
     record = {
         "sample_id": sample["sample_id"],
+        "memory_ablation_order": sample.get("memory_ablation_order"),
         "db_id": sample["db_id"],
         "db_path": sample["db_path"],
         "difficulty": sample["difficulty"],
@@ -1639,6 +1806,10 @@ def finalize_bucket(bucket):
         "argument_error_count": bucket["argument_error_count"],
         "budget_exceeded_count": bucket["budget_exceeded_count"],
         "premature_finish_count": bucket["premature_finish_count"],
+        "memory_hit_count": bucket["memory_hit_count"],
+        "memory_access_count": bucket["memory_access_count"],
+        "memory_write_count": bucket["memory_write_count"],
+        "memory_hit_rate": bucket["memory_hit_count"] / bucket["memory_access_count"] if bucket["memory_access_count"] else 0.0,
     }
 
 
@@ -1670,6 +1841,9 @@ def compute_iterative_metrics(records):
             bucket["argument_error_count"] += record.get("argument_error_count", 0)
             bucket["budget_exceeded_count"] += record.get("budget_exceeded_count", 0)
             bucket["premature_finish_count"] += record.get("premature_finish_count", 0)
+            bucket["memory_hit_count"] += record.get("memory_hit_count", 0)
+            bucket["memory_access_count"] += record.get("memory_access_count", 0)
+            bucket["memory_write_count"] += record.get("memory_write_count", 0)
 
     metrics = finalize_bucket(overall)
     metrics["by_difficulty"] = {name: finalize_bucket(bucket) for name, bucket in sorted(by_difficulty.items())}
@@ -1703,14 +1877,18 @@ def run_iterative_agent(
     max_tool_calls=DEFAULT_AUTONOMOUS_MAX_TOOL_CALLS,
     max_execute_calls=DEFAULT_AUTONOMOUS_MAX_EXECUTE_CALLS,
     max_value_search_calls=DEFAULT_AUTONOMOUS_MAX_VALUE_SEARCH_CALLS,
+    memory_mode="working",
 ):
     if tool_use_mode not in {"rule_based", "llm_decided"}:
         raise ValueError("tool_use_mode must be 'rule_based' or 'llm_decided'.")
+    if memory_mode not in MEMORY_MODES:
+        raise ValueError("memory_mode must be 'off', 'working', or 'episodic'.")
     if max_steps is None:
         max_steps = DEFAULT_AUTONOMOUS_MAX_STEPS if tool_use_mode == "llm_decided" else DEFAULT_MAX_STEPS
 
     records = []
     linker_cache = {}
+    episodic_memory_by_db = {}
     predictions_path.parent.mkdir(parents=True, exist_ok=True)
     metrics_path.parent.mkdir(parents=True, exist_ok=True)
     traces_path.parent.mkdir(parents=True, exist_ok=True)
@@ -1736,11 +1914,16 @@ def run_iterative_agent(
                     max_value_search_calls=max_value_search_calls,
                 )
             else:
+                episodic_memory = None
+                if memory_mode == "episodic":
+                    episodic_memory = episodic_memory_by_db.setdefault(sample["db_id"], EpisodicMemory(sample["db_id"]))
                 record, trace = run_one_sample(
                     sample,
                     schema_linker=linker_cache[db_path],
                     max_steps=max_steps,
                     top_k_schema=top_k_schema,
+                    memory_mode=memory_mode,
+                    episodic_memory=episodic_memory,
                 )
             records.append(record)
             pred_file.write(json.dumps(record, ensure_ascii=False) + "\n")
@@ -1757,6 +1940,7 @@ def run_iterative_agent(
     metrics = compute_iterative_metrics(records)
     metrics["max_steps"] = max_steps
     metrics["tool_use_mode"] = tool_use_mode
+    metrics["memory_mode"] = memory_mode
     if tool_use_mode == "llm_decided":
         metrics["max_tool_calls"] = max_tool_calls
         metrics["max_execute_calls"] = max_execute_calls
@@ -1809,6 +1993,7 @@ def parse_args():
     parser.add_argument("--db-id")
     parser.add_argument("--limit", type=int)
     parser.add_argument("--tool-use-mode", choices=["rule_based", "llm_decided"], default="rule_based")
+    parser.add_argument("--memory-mode", choices=sorted(MEMORY_MODES), default="working")
     parser.add_argument("--max-steps", type=int)
     parser.add_argument("--max-tool-calls", type=int, default=DEFAULT_AUTONOMOUS_MAX_TOOL_CALLS)
     parser.add_argument("--max-execute-calls", type=int, default=DEFAULT_AUTONOMOUS_MAX_EXECUTE_CALLS)
@@ -1857,6 +2042,7 @@ def main():
         max_tool_calls=args.max_tool_calls,
         max_execute_calls=args.max_execute_calls,
         max_value_search_calls=args.max_value_search_calls,
+        memory_mode=args.memory_mode,
     )
     print(json.dumps(summary, ensure_ascii=False, indent=2))
 
