@@ -132,9 +132,12 @@ Input:
 ```json
 {
   "db_id": "string",
-  "sql": "string"
+  "sql": "string",
+  "final_candidate": false
 }
 ```
+
+`final_candidate` is optional and defaults to `false`. Autonomous tool-selection mode uses it to distinguish exploratory probe SQL from SQL that may later be submitted with `finish`.
 
 Output:
 

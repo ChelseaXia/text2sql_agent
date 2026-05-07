@@ -226,6 +226,11 @@ TOOL_SCHEMAS = [
                     "type": "string",
                     "description": "Read-only SQL query. Only SELECT or WITH statements are allowed.",
                 },
+                "final_candidate": {
+                    "type": "boolean",
+                    "description": "Whether this SQL is intended as a candidate final answer rather than a probe.",
+                    "default": False,
+                },
             },
             "required": ["db_id", "sql"],
             "additionalProperties": False,

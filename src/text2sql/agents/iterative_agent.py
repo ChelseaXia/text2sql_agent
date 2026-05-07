@@ -19,8 +19,10 @@ from text2sql.prompts.generation import build_linked_prompt
 from text2sql.prompts.repair import build_repair_prompt
 from text2sql.schema.items import quote_identifier
 from text2sql.schema.linker import DEFAULT_LINKER_MODE, DEFAULT_TOP_K
+from text2sql.agents.autonomous_tool_policy import select_autonomous_tool_call
 
 METHOD_NAME = "suspicion_triggered_iterative_agent"
+AUTONOMOUS_METHOD_NAME = "llm_decided_iterative_agent"
 DEFAULT_OUTPUT_DIR = RESULTS_DIR / "iterative_agent"
 DEFAULT_PREDICTIONS_PATH = DEFAULT_OUTPUT_DIR / "predictions.jsonl"
 DEFAULT_METRICS_PATH = DEFAULT_OUTPUT_DIR / "metrics.json"
@@ -28,6 +30,10 @@ DEFAULT_TRACES_PATH = DEFAULT_OUTPUT_DIR / "traces.jsonl"
 DEFAULT_MANIFEST_PATH = DEFAULT_OUTPUT_DIR / "california_schools_50_manifest.jsonl"
 DEFAULT_CHALLENGING_MANIFEST_PATH = DEFAULT_OUTPUT_DIR / "challenging_19_manifest.jsonl"
 DEFAULT_MAX_STEPS = 5
+DEFAULT_AUTONOMOUS_MAX_STEPS = 6
+DEFAULT_AUTONOMOUS_MAX_TOOL_CALLS = 10
+DEFAULT_AUTONOMOUS_MAX_EXECUTE_CALLS = 3
+DEFAULT_AUTONOMOUS_MAX_VALUE_SEARCH_CALLS = 2
 DEFAULT_SAMPLE_ROWS = 5
 
 LIST_INTENT_TERMS = {
@@ -689,6 +695,93 @@ def make_trace_event(sample, step, action, tool_input, observation, suspicion_re
     }
 
 
+def make_autonomous_trace_event(
+    sample,
+    step,
+    llm_selected_tool,
+    thought,
+    tool_args,
+    validation_result,
+    observation,
+    working_memory,
+    current_sql,
+    last_successful_sql,
+    final_sql,
+    finish_reason,
+    budget_state,
+):
+    return {
+        "sample_id": sample["sample_id"],
+        "question": sample["question"],
+        "step": step,
+        "tool_use_mode": "llm_decided",
+        "llm_selected_tool": llm_selected_tool,
+        "thought": thought,
+        "tool_args": tool_args,
+        "validation_result": validation_result,
+        "observation": observation,
+        "working_memory_summary": working_memory.compact(),
+        "current_sql": current_sql,
+        "last_successful_sql": last_successful_sql,
+        "final_sql": final_sql,
+        "finish_reason": finish_reason,
+        "budget_state": dict(budget_state),
+    }
+
+
+def autonomous_budget_state(stats, max_steps, max_tool_calls, max_execute_calls, max_value_search_calls, step_id):
+    return {
+        "step": step_id,
+        "max_steps": max_steps,
+        "tool_calls": stats["tool_call_count"],
+        "max_tool_calls": max_tool_calls,
+        "execute_calls": stats["execute_call_count"],
+        "max_execute_calls": max_execute_calls,
+        "search_column_values_calls": stats["search_column_values_count"],
+        "max_value_search_calls": max_value_search_calls,
+        "remaining_steps": max(0, max_steps - step_id + 1),
+        "remaining_tool_calls": max(0, max_tool_calls - stats["tool_call_count"]),
+        "remaining_execute_calls": max(0, max_execute_calls - stats["execute_call_count"]),
+        "remaining_value_search_calls": max(0, max_value_search_calls - stats["search_column_values_count"]),
+    }
+
+
+def autonomous_budget_exceeded(stats, max_tool_calls, max_execute_calls, max_value_search_calls):
+    if stats["tool_call_count"] >= max_tool_calls:
+        return "max_tool_calls_exceeded"
+    if stats["execute_call_count"] >= max_execute_calls:
+        return "max_execute_calls_exceeded"
+    if stats["search_column_values_count"] >= max_value_search_calls:
+        return "max_value_search_calls_exceeded"
+    return None
+
+
+def dispatch_autonomous_tool(tools, tool_name, args):
+    if tool_name == "retrieve_schema":
+        return tools.retrieve_schema()
+    if tool_name == "inspect_table":
+        return tools.inspect_table(tools.normalize_table_name(args.get("table_name")))
+    if tool_name == "sample_rows":
+        return tools.sample_rows(tools.normalize_table_name(args.get("table_name")), n=args.get("n", DEFAULT_SAMPLE_ROWS))
+    if tool_name == "search_column_values":
+        table_name = tools.normalize_table_name(args.get("table_name"))
+        column_name = tools.normalize_column_name(table_name, args.get("column_name"))
+        return tools.search_column_values(table_name, column_name, args.get("query") or "")
+    if tool_name == "execute_sql":
+        result = tools.execute_sql(args.get("sql", ""))
+        return {
+            "success": result["success"],
+            "row_count": len(result["rows"]),
+            "rows_preview": compact_rows(result["rows"]),
+            "rows": result["rows"],
+            "error": result["error"],
+            "final_candidate": bool(args.get("final_candidate")),
+        }
+    if tool_name == "finish":
+        return tools.finish(args.get("final_sql", ""))
+    raise ValueError(f"Unknown tool: {tool_name}")
+
+
 def generate_initial_sql(sample, linked_schema_text):
     raw_response = call_llm(build_linked_prompt(sample, linked_schema_text))
     return extract_sql(raw_response), raw_response
@@ -1146,6 +1239,352 @@ def run_one_sample(sample, schema_linker, max_steps=DEFAULT_MAX_STEPS, top_k_sch
     return record, trace
 
 
+def run_one_sample_autonomous(
+    sample,
+    schema_linker,
+    max_steps=DEFAULT_AUTONOMOUS_MAX_STEPS,
+    top_k_schema=DEFAULT_TOP_K,
+    max_tool_calls=DEFAULT_AUTONOMOUS_MAX_TOOL_CALLS,
+    max_execute_calls=DEFAULT_AUTONOMOUS_MAX_EXECUTE_CALLS,
+    max_value_search_calls=DEFAULT_AUTONOMOUS_MAX_VALUE_SEARCH_CALLS,
+):
+    tools = IterativeAgentTools(sample, schema_linker, top_k_schema=top_k_schema)
+    working_memory = WorkingMemory()
+    trace = []
+    tool_history = []
+    stats = {
+        "tool_call_count": 0,
+        "execute_call_count": 0,
+        "suspicious_trigger_count": 0,
+        "exploration_count": 0,
+        "repair_count": 0,
+        "repair_attempt_count": 0,
+        "repair_success_count": 0,
+        "search_column_values_count": 0,
+        "intent_plan_success_count": 0,
+        "working_memory_update_count": 0,
+        "finish_count": 0,
+        "validation_error_count": 0,
+        "json_parse_error_count": 0,
+        "over_exploration_count": 0,
+        "finish_without_successful_execute_count": 0,
+        "probe_as_final_count": 0,
+        "tool_selection_error_count": 0,
+        "argument_error_count": 0,
+        "budget_exceeded_count": 0,
+        "premature_finish_count": 0,
+    }
+    selected_tables = []
+    retrieved_columns = []
+    linked_schema_text = ""
+    current_sql = ""
+    last_successful_sql = ""
+    last_successful_final_candidate_sql = ""
+    last_successful_result = {"success": False, "rows": [], "error": "No successful execution"}
+    final_result = {"success": False, "rows": [], "error": "No SQL executed"}
+    final_sql = ""
+    finish_reason = None
+    last_observation = None
+    last_execute_success = False
+
+    for step_id in range(1, max_steps + 1):
+        exceeded_reason = autonomous_budget_exceeded(stats, max_tool_calls, max_execute_calls, max_value_search_calls)
+        if exceeded_reason:
+            finish_reason = exceeded_reason
+            stats["budget_exceeded_count"] += 1
+            stats["over_exploration_count"] += 1
+            break
+
+        budget_state = autonomous_budget_state(
+            stats,
+            max_steps,
+            max_tool_calls,
+            max_execute_calls,
+            max_value_search_calls,
+            step_id,
+        )
+        try:
+            selection = select_autonomous_tool_call(
+                sample=sample,
+                intent_plan=working_memory.intent_plan,
+                working_memory_summary=working_memory.compact(),
+                tool_history=tool_history,
+                last_observation=last_observation,
+                current_sql=current_sql,
+                last_successful_sql=last_successful_sql,
+                budget_state=budget_state,
+            )
+        except Exception as exc:
+            selection = {
+                "thought": "",
+                "tool": None,
+                "args": {},
+                "json_parse_error": None,
+                "validation_result": {"valid": False, "error": f"Tool-selection LLM error: {exc}"},
+                "raw_response": "",
+                "repair_raw_response": None,
+                "repair_attempted": False,
+            }
+
+        tool_name = selection.get("tool")
+        tool_args = selection.get("args") or {}
+        thought = selection.get("thought") or ""
+        validation_result = selection.get("validation_result") or {"valid": False, "error": "Missing validation result."}
+        if selection.get("json_parse_error"):
+            stats["json_parse_error_count"] += 1
+
+        observation = None
+        step_finish_reason = None
+        executed = False
+
+        if not validation_result.get("valid"):
+            stats["validation_error_count"] += 1
+            error_text = validation_result.get("error") or "Unknown validation error."
+            if "Unknown tool" in error_text:
+                stats["tool_selection_error_count"] += 1
+            else:
+                stats["argument_error_count"] += 1
+            observation = {
+                "validation_error": error_text,
+                "raw_response": selection.get("raw_response", ""),
+                "repair_raw_response": selection.get("repair_raw_response"),
+                "repair_attempted": selection.get("repair_attempted", False),
+            }
+            working_memory.add_avoid_rule(f"Previous tool call was invalid: {error_text}")
+        else:
+            selected_would_exceed = None
+            if stats["tool_call_count"] + 1 > max_tool_calls:
+                selected_would_exceed = "max_tool_calls_exceeded"
+            elif tool_name == "execute_sql" and stats["execute_call_count"] + 1 > max_execute_calls:
+                selected_would_exceed = "max_execute_calls_exceeded"
+            elif tool_name == "search_column_values" and stats["search_column_values_count"] + 1 > max_value_search_calls:
+                selected_would_exceed = "max_value_search_calls_exceeded"
+
+            if selected_would_exceed:
+                stats["budget_exceeded_count"] += 1
+                stats["over_exploration_count"] += 1
+                finish_reason = selected_would_exceed
+                observation = {"budget_error": selected_would_exceed}
+                step_finish_reason = selected_would_exceed
+            elif tool_name == "finish":
+                requested_final_sql = (tool_args.get("final_sql") or "").strip()
+                if not requested_final_sql:
+                    stats["premature_finish_count"] += 1
+                    observation = {"finish_guard": "blocked", "reason": "empty_final_sql"}
+                    step_finish_reason = "empty_final_sql"
+                elif not last_successful_sql:
+                    stats["premature_finish_count"] += 1
+                    stats["finish_without_successful_execute_count"] += 1
+                    observation = {"finish_guard": "blocked", "reason": "finish_without_successful_execute"}
+                    step_finish_reason = "finish_without_successful_execute"
+                elif not last_execute_success:
+                    stats["premature_finish_count"] += 1
+                    stats["finish_without_successful_execute_count"] += 1
+                    observation = {"finish_guard": "blocked", "reason": "last_execute_failed"}
+                    step_finish_reason = "last_execute_failed"
+                elif requested_final_sql != last_successful_final_candidate_sql:
+                    stats["premature_finish_count"] += 1
+                    if requested_final_sql == last_successful_sql:
+                        stats["probe_as_final_count"] += 1
+                        reason = "probe_as_final_blocked"
+                    else:
+                        stats["finish_without_successful_execute_count"] += 1
+                        reason = "final_sql_not_successfully_executed_as_final_candidate"
+                    observation = {"finish_guard": "blocked", "reason": reason}
+                    step_finish_reason = reason
+                else:
+                    observation = tools.finish(requested_final_sql)
+                    stats["tool_call_count"] += 1
+                    stats["finish_count"] += 1
+                    final_sql = requested_final_sql
+                    final_result = last_successful_result
+                    finish_reason = "finish_tool"
+                    step_finish_reason = finish_reason
+                    executed = True
+            else:
+                try:
+                    observation = dispatch_autonomous_tool(tools, tool_name, tool_args)
+                    stats["tool_call_count"] += 1
+                    executed = True
+                    if tool_name in {"inspect_table", "sample_rows", "search_column_values"}:
+                        stats["exploration_count"] += 1
+                    if tool_name == "search_column_values":
+                        stats["search_column_values_count"] += 1
+                    if tool_name == "execute_sql":
+                        stats["execute_call_count"] += 1
+                        current_sql = tool_args.get("sql", "")
+                        execute_success = bool(observation["success"])
+                        last_execute_success = execute_success
+                        final_result = {
+                            "success": execute_success,
+                            "rows": observation.get("rows", []),
+                            "error": observation.get("error"),
+                        }
+                        if execute_success:
+                            last_successful_sql = current_sql
+                            last_successful_result = final_result
+                            if tool_args.get("final_candidate"):
+                                last_successful_final_candidate_sql = current_sql
+                        else:
+                            working_memory.add_failed_sql(current_sql, observation.get("error"))
+                    elif tool_name == "retrieve_schema":
+                        selected_tables = observation["selected_tables"]
+                        retrieved_columns = observation["retrieved_columns"]
+                        linked_schema_text = observation["linked_schema_text"]
+                        intent_plan, _, _ = generate_intent_plan(sample, linked_schema_text, selected_tables)
+                        working_memory.set_intent_plan(intent_plan)
+                        stats["intent_plan_success_count"] += 1 if intent_plan else 0
+                    elif tool_name == "inspect_table":
+                        working_memory.add_inspected_table(tool_args.get("table_name"), observation)
+                    elif tool_name == "sample_rows":
+                        working_memory.add_sampled_rows(tool_args.get("table_name"), observation)
+                    elif tool_name == "search_column_values":
+                        working_memory.add_observed_values(
+                            tool_args.get("table_name"),
+                            tool_args.get("column_name"),
+                            tool_args.get("query"),
+                            observation,
+                        )
+                except Exception as exc:
+                    observation = {"tool_error": str(exc)}
+                    stats["validation_error_count"] += 1
+                    stats["argument_error_count"] += 1
+                    working_memory.add_avoid_rule(f"Tool execution failed: {exc}")
+
+        budget_state_after = autonomous_budget_state(
+            stats,
+            max_steps,
+            max_tool_calls,
+            max_execute_calls,
+            max_value_search_calls,
+            step_id,
+        )
+        trace_event = make_autonomous_trace_event(
+            sample=sample,
+            step=step_id,
+            llm_selected_tool=tool_name,
+            thought=thought,
+            tool_args=tool_args,
+            validation_result=validation_result,
+            observation=observation,
+            working_memory=working_memory,
+            current_sql=current_sql,
+            last_successful_sql=last_successful_sql,
+            final_sql=final_sql,
+            finish_reason=step_finish_reason,
+            budget_state=budget_state_after,
+        )
+        trace.append(trace_event)
+        tool_history.append(
+            {
+                "step": step_id,
+                "tool": tool_name,
+                "args": tool_args,
+                "valid": validation_result.get("valid"),
+                "executed": executed,
+                "observation": observation_summary(observation, 500),
+                "finish_reason": step_finish_reason,
+            }
+        )
+        last_observation = observation
+        if finish_reason:
+            break
+
+    if not final_sql:
+        fallback_reason = finish_reason or "max_steps_exhausted"
+        if last_successful_sql:
+            final_sql = last_successful_sql
+            final_result = last_successful_result
+            stats["finish_count"] += 1
+            finish_reason = f"{fallback_reason}_fallback_last_successful_sql"
+            if last_successful_sql != last_successful_final_candidate_sql:
+                stats["probe_as_final_count"] += 1
+            trace.append(
+                make_autonomous_trace_event(
+                    sample,
+                    len(trace) + 1,
+                    "finish",
+                    "Budget fallback to the last successfully executed SQL.",
+                    {"final_sql": final_sql},
+                    {"valid": True, "error": None},
+                    tools.finish(final_sql),
+                    working_memory,
+                    current_sql,
+                    last_successful_sql,
+                    final_sql,
+                    finish_reason,
+                    autonomous_budget_state(stats, max_steps, max_tool_calls, max_execute_calls, max_value_search_calls, max_steps),
+                )
+            )
+        else:
+            stats["finish_without_successful_execute_count"] += 1
+            finish_reason = f"{fallback_reason}_no_successful_execute"
+            trace.append(
+                make_autonomous_trace_event(
+                    sample,
+                    len(trace) + 1,
+                    "finish",
+                    "Unable to finish because no SQL executed successfully.",
+                    {"final_sql": ""},
+                    {"valid": False, "error": "No successful execute_sql call before finish."},
+                    {"finish_guard": "blocked", "reason": "no_successful_execute"},
+                    working_memory,
+                    current_sql,
+                    last_successful_sql,
+                    "",
+                    finish_reason,
+                    autonomous_budget_state(stats, max_steps, max_tool_calls, max_execute_calls, max_value_search_calls, max_steps),
+                )
+            )
+
+    gold_result = run_sql(sample["gold_sql"], sample["db_path"])
+    pred_success = bool(final_result["success"]) if final_sql else False
+    ex = bool(pred_success and gold_result["success"] and same_result(final_result["rows"], gold_result["rows"]))
+    stats["working_memory_update_count"] = working_memory.update_count
+
+    for event in trace:
+        if event["final_sql"]:
+            event["is_correct"] = ex
+
+    record = {
+        "sample_id": sample["sample_id"],
+        "db_id": sample["db_id"],
+        "db_path": sample["db_path"],
+        "difficulty": sample["difficulty"],
+        "question": sample["question"],
+        "evidence": sample.get("evidence", ""),
+        "gold_sql": sample["gold_sql"],
+        "method": AUTONOMOUS_METHOD_NAME,
+        "tool_use_mode": "llm_decided",
+        "schema_linker_mode": DEFAULT_LINKER_MODE,
+        "retrieved_columns": retrieved_columns,
+        "selected_tables": selected_tables,
+        "pred_sql": final_sql,
+        "predicted_sql": final_sql,
+        "final_sql": final_sql,
+        "pred_success": pred_success,
+        "is_executable": pred_success,
+        "gold_success": gold_result["success"],
+        "error": None if pred_success else final_result["error"],
+        "failure_reason": None if pred_success else final_result["error"],
+        "pred_row_count": len(final_result["rows"]) if pred_success else 0,
+        "gold_row_count": len(gold_result["rows"]),
+        "pred_rows_preview": compact_rows(final_result["rows"]) if pred_success else [],
+        "gold_rows_preview": compact_rows(gold_result["rows"]),
+        "ex": ex,
+        "is_correct": ex,
+        "final_sql_source": "finish_tool" if stats["finish_count"] else "no_finish",
+        "finish_reason": finish_reason,
+        "max_steps": max_steps,
+        "max_tool_calls": max_tool_calls,
+        "max_execute_calls": max_execute_calls,
+        "max_value_search_calls": max_value_search_calls,
+        "trace": trace,
+        **stats,
+    }
+    return record, trace
+
+
 def empty_bucket():
     return {
         "sample_count": 0,
@@ -1162,6 +1601,15 @@ def empty_bucket():
         "search_column_values_count": 0,
         "intent_plan_success_count": 0,
         "working_memory_update_count": 0,
+        "validation_error_count": 0,
+        "json_parse_error_count": 0,
+        "over_exploration_count": 0,
+        "finish_without_successful_execute_count": 0,
+        "probe_as_final_count": 0,
+        "tool_selection_error_count": 0,
+        "argument_error_count": 0,
+        "budget_exceeded_count": 0,
+        "premature_finish_count": 0,
     }
 
 
@@ -1182,6 +1630,15 @@ def finalize_bucket(bucket):
         "search_column_values_count": bucket["search_column_values_count"],
         "intent_plan_success_count": bucket["intent_plan_success_count"],
         "working_memory_update_count": bucket["working_memory_update_count"],
+        "validation_error_count": bucket["validation_error_count"],
+        "json_parse_error_count": bucket["json_parse_error_count"],
+        "over_exploration_count": bucket["over_exploration_count"],
+        "finish_without_successful_execute_count": bucket["finish_without_successful_execute_count"],
+        "probe_as_final_count": bucket["probe_as_final_count"],
+        "tool_selection_error_count": bucket["tool_selection_error_count"],
+        "argument_error_count": bucket["argument_error_count"],
+        "budget_exceeded_count": bucket["budget_exceeded_count"],
+        "premature_finish_count": bucket["premature_finish_count"],
     }
 
 
@@ -1204,6 +1661,15 @@ def compute_iterative_metrics(records):
             bucket["search_column_values_count"] += record["search_column_values_count"]
             bucket["intent_plan_success_count"] += record["intent_plan_success_count"]
             bucket["working_memory_update_count"] += record["working_memory_update_count"]
+            bucket["validation_error_count"] += record.get("validation_error_count", 0)
+            bucket["json_parse_error_count"] += record.get("json_parse_error_count", 0)
+            bucket["over_exploration_count"] += record.get("over_exploration_count", 0)
+            bucket["finish_without_successful_execute_count"] += record.get("finish_without_successful_execute_count", 0)
+            bucket["probe_as_final_count"] += record.get("probe_as_final_count", 0)
+            bucket["tool_selection_error_count"] += record.get("tool_selection_error_count", 0)
+            bucket["argument_error_count"] += record.get("argument_error_count", 0)
+            bucket["budget_exceeded_count"] += record.get("budget_exceeded_count", 0)
+            bucket["premature_finish_count"] += record.get("premature_finish_count", 0)
 
     metrics = finalize_bucket(overall)
     metrics["by_difficulty"] = {name: finalize_bucket(bucket) for name, bucket in sorted(by_difficulty.items())}
@@ -1230,10 +1696,19 @@ def run_iterative_agent(
     predictions_path=DEFAULT_PREDICTIONS_PATH,
     metrics_path=DEFAULT_METRICS_PATH,
     traces_path=DEFAULT_TRACES_PATH,
-    max_steps=DEFAULT_MAX_STEPS,
+    max_steps=None,
     top_k_schema=DEFAULT_TOP_K,
     embedding_model_path=None,
+    tool_use_mode="rule_based",
+    max_tool_calls=DEFAULT_AUTONOMOUS_MAX_TOOL_CALLS,
+    max_execute_calls=DEFAULT_AUTONOMOUS_MAX_EXECUTE_CALLS,
+    max_value_search_calls=DEFAULT_AUTONOMOUS_MAX_VALUE_SEARCH_CALLS,
 ):
+    if tool_use_mode not in {"rule_based", "llm_decided"}:
+        raise ValueError("tool_use_mode must be 'rule_based' or 'llm_decided'.")
+    if max_steps is None:
+        max_steps = DEFAULT_AUTONOMOUS_MAX_STEPS if tool_use_mode == "llm_decided" else DEFAULT_MAX_STEPS
+
     records = []
     linker_cache = {}
     predictions_path.parent.mkdir(parents=True, exist_ok=True)
@@ -1250,12 +1725,23 @@ def run_iterative_agent(
                     schema_linker_mode=DEFAULT_LINKER_MODE,
                     embedding_model_path=embedding_model_path,
                 )
-            record, trace = run_one_sample(
-                sample,
-                schema_linker=linker_cache[db_path],
-                max_steps=max_steps,
-                top_k_schema=top_k_schema,
-            )
+            if tool_use_mode == "llm_decided":
+                record, trace = run_one_sample_autonomous(
+                    sample,
+                    schema_linker=linker_cache[db_path],
+                    max_steps=max_steps,
+                    top_k_schema=top_k_schema,
+                    max_tool_calls=max_tool_calls,
+                    max_execute_calls=max_execute_calls,
+                    max_value_search_calls=max_value_search_calls,
+                )
+            else:
+                record, trace = run_one_sample(
+                    sample,
+                    schema_linker=linker_cache[db_path],
+                    max_steps=max_steps,
+                    top_k_schema=top_k_schema,
+                )
             records.append(record)
             pred_file.write(json.dumps(record, ensure_ascii=False) + "\n")
             pred_file.flush()
@@ -1270,6 +1756,11 @@ def run_iterative_agent(
 
     metrics = compute_iterative_metrics(records)
     metrics["max_steps"] = max_steps
+    metrics["tool_use_mode"] = tool_use_mode
+    if tool_use_mode == "llm_decided":
+        metrics["max_tool_calls"] = max_tool_calls
+        metrics["max_execute_calls"] = max_execute_calls
+        metrics["max_value_search_calls"] = max_value_search_calls
     metrics["schema_linker_mode"] = DEFAULT_LINKER_MODE
     metrics_path.write_text(json.dumps(metrics, ensure_ascii=False, indent=2), encoding="utf-8")
     return {
@@ -1317,7 +1808,11 @@ def parse_args():
     parser.add_argument("--manifest", type=Path)
     parser.add_argument("--db-id")
     parser.add_argument("--limit", type=int)
-    parser.add_argument("--max-steps", type=int, default=DEFAULT_MAX_STEPS)
+    parser.add_argument("--tool-use-mode", choices=["rule_based", "llm_decided"], default="rule_based")
+    parser.add_argument("--max-steps", type=int)
+    parser.add_argument("--max-tool-calls", type=int, default=DEFAULT_AUTONOMOUS_MAX_TOOL_CALLS)
+    parser.add_argument("--max-execute-calls", type=int, default=DEFAULT_AUTONOMOUS_MAX_EXECUTE_CALLS)
+    parser.add_argument("--max-value-search-calls", type=int, default=DEFAULT_AUTONOMOUS_MAX_VALUE_SEARCH_CALLS)
     parser.add_argument("--top-k-schema", type=int, default=DEFAULT_TOP_K)
     parser.add_argument("--embedding-model-path", type=Path)
     parser.add_argument("--predictions-output", type=Path, default=DEFAULT_PREDICTIONS_PATH)
@@ -1358,6 +1853,10 @@ def main():
         max_steps=args.max_steps,
         top_k_schema=args.top_k_schema,
         embedding_model_path=args.embedding_model_path,
+        tool_use_mode=args.tool_use_mode,
+        max_tool_calls=args.max_tool_calls,
+        max_execute_calls=args.max_execute_calls,
+        max_value_search_calls=args.max_value_search_calls,
     )
     print(json.dumps(summary, ensure_ascii=False, indent=2))
 
