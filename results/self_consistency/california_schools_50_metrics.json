@@ -1,0 +1,62 @@
+{
+  "sample_count": 50,
+  "selected_EX": 0.38,
+  "selected_VSR": 1.0,
+  "oracle_EX_at_K": 0.4,
+  "avg_valid_candidate_count": 9.94,
+  "avg_cluster_count": 3.74,
+  "avg_cluster_confidence": 0.6451111111111112,
+  "generation_bottleneck_count": 30,
+  "selection_bottleneck_count": 1,
+  "by_difficulty": {
+    "challenging": {
+      "sample_count": 19,
+      "selected_EX": 0.0,
+      "selected_VSR": 1.0,
+      "oracle_EX_at_K": 0.0,
+      "avg_valid_candidate_count": 9.842105263157896,
+      "avg_cluster_count": 6.842105263157895,
+      "avg_cluster_confidence": 0.35555555555555557,
+      "generation_bottleneck_count": 19,
+      "selection_bottleneck_count": 0
+    },
+    "moderate": {
+      "sample_count": 16,
+      "selected_EX": 0.5,
+      "selected_VSR": 1.0,
+      "oracle_EX_at_K": 0.5625,
+      "avg_valid_candidate_count": 10.0,
+      "avg_cluster_count": 1.8125,
+      "avg_cluster_confidence": 0.825,
+      "generation_bottleneck_count": 7,
+      "selection_bottleneck_count": 1
+    },
+    "simple": {
+      "sample_count": 15,
+      "selected_EX": 0.7333333333333333,
+      "selected_VSR": 1.0,
+      "oracle_EX_at_K": 0.7333333333333333,
+      "avg_valid_candidate_count": 10.0,
+      "avg_cluster_count": 1.8666666666666667,
+      "avg_cluster_confidence": 0.8200000000000001,
+      "generation_bottleneck_count": 4,
+      "selection_bottleneck_count": 0
+    }
+  },
+  "by_database": {
+    "california_schools": {
+      "sample_count": 50,
+      "selected_EX": 0.38,
+      "selected_VSR": 1.0,
+      "oracle_EX_at_K": 0.4,
+      "avg_valid_candidate_count": 9.94,
+      "avg_cluster_count": 3.74,
+      "avg_cluster_confidence": 0.6451111111111112,
+      "generation_bottleneck_count": 30,
+      "selection_bottleneck_count": 1
+    }
+  },
+  "k": 10,
+  "temperature": 0.7,
+  "enable_repair": true
+}
