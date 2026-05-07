@@ -1,0 +1,36 @@
+{
+  "sample_count": 19,
+  "EX": 0.0,
+  "VSR": 1.0,
+  "finish_rate": 1.0,
+  "avg_tool_calls": 6.2631578947368425,
+  "avg_execute_calls": 2.1578947368421053,
+  "suspicious_trigger_count": 22,
+  "exploration_count": 16,
+  "repair_count": 5,
+  "repair_attempt_count": 5,
+  "repair_success_count": 5,
+  "search_column_values_count": 39,
+  "intent_plan_success_count": 19,
+  "working_memory_update_count": 100,
+  "by_difficulty": {
+    "challenging": {
+      "sample_count": 19,
+      "EX": 0.0,
+      "VSR": 1.0,
+      "finish_rate": 1.0,
+      "avg_tool_calls": 6.2631578947368425,
+      "avg_execute_calls": 2.1578947368421053,
+      "suspicious_trigger_count": 22,
+      "exploration_count": 16,
+      "repair_count": 5,
+      "repair_attempt_count": 5,
+      "repair_success_count": 5,
+      "search_column_values_count": 39,
+      "intent_plan_success_count": 19,
+      "working_memory_update_count": 100
+    }
+  },
+  "max_steps": 5,
+  "schema_linker_mode": "hybrid"
+}

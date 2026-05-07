@@ -1,0 +1,52 @@
+{
+  "sample_count": 5,
+  "EX": 0.2,
+  "VSR": 1.0,
+  "finish_rate": 1.0,
+  "avg_tool_calls": 7.0,
+  "avg_execute_calls": 2.0,
+  "suspicious_trigger_count": 5,
+  "exploration_count": 5,
+  "repair_count": 0,
+  "repair_attempt_count": 0,
+  "repair_success_count": 0,
+  "search_column_values_count": 15,
+  "intent_plan_success_count": 5,
+  "working_memory_update_count": 29,
+  "by_difficulty": {
+    "challenging": {
+      "sample_count": 3,
+      "EX": 0.0,
+      "VSR": 1.0,
+      "finish_rate": 1.0,
+      "avg_tool_calls": 8.0,
+      "avg_execute_calls": 2.0,
+      "suspicious_trigger_count": 3,
+      "exploration_count": 3,
+      "repair_count": 0,
+      "repair_attempt_count": 0,
+      "repair_success_count": 0,
+      "search_column_values_count": 12,
+      "intent_plan_success_count": 3,
+      "working_memory_update_count": 20
+    },
+    "moderate": {
+      "sample_count": 2,
+      "EX": 0.5,
+      "VSR": 1.0,
+      "finish_rate": 1.0,
+      "avg_tool_calls": 5.5,
+      "avg_execute_calls": 2.0,
+      "suspicious_trigger_count": 2,
+      "exploration_count": 2,
+      "repair_count": 0,
+      "repair_attempt_count": 0,
+      "repair_success_count": 0,
+      "search_column_values_count": 3,
+      "intent_plan_success_count": 2,
+      "working_memory_update_count": 9
+    }
+  },
+  "max_steps": 5,
+  "schema_linker_mode": "hybrid"
+}
