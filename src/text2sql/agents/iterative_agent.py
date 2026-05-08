@@ -21,6 +21,7 @@ from text2sql.schema.items import quote_identifier
 from text2sql.schema.linker import DEFAULT_LINKER_MODE, DEFAULT_TOP_K
 from text2sql.agents.autonomous_tool_policy import select_autonomous_tool_call
 from text2sql.agents.memory import EpisodicMemory, NullWorkingMemory, WorkingMemory as MemoryWorkingMemory
+from text2sql.agents.tool_executor import build_tool_executor
 
 METHOD_NAME = "suspicion_triggered_iterative_agent"
 AUTONOMOUS_METHOD_NAME = "llm_decided_iterative_agent"
@@ -692,11 +693,13 @@ def make_trace_event(
     final_sql=None,
     is_correct=None,
     episodic_memory_summary=None,
+    tool_backend="local",
 ):
     return {
         "sample_id": sample["sample_id"],
         "question": sample["question"],
         "step": step,
+        "tool_backend": tool_backend,
         "action": action,
         "tool_input": tool_input,
         "observation": observation,
@@ -743,11 +746,12 @@ def schema_text_with_memory(linked_schema_text, memory_text):
     return f"{linked_schema_text}\n\nMemory context (runtime observations only, no gold/evaluator feedback):\n{memory_text}"
 
 
-def write_memory_observation(working_memory, episodic_memory, sample, action, tool_input, observation):
+def write_memory_observation(working_memory, episodic_memory, sample, action, tool_input, observation, tool_backend="local"):
     event = {
         "sample_id": sample["sample_id"],
         "memory_ablation_order": sample.get("memory_ablation_order"),
         "db_id": sample["db_id"],
+        "tool_backend": tool_backend,
         "action": action,
         "tool_input": tool_input,
         "observation": observation,
@@ -772,12 +776,14 @@ def make_autonomous_trace_event(
     final_sql,
     finish_reason,
     budget_state,
+    tool_backend="local",
 ):
     return {
         "sample_id": sample["sample_id"],
         "question": sample["question"],
         "step": step,
         "tool_use_mode": "llm_decided",
+        "tool_backend": tool_backend,
         "llm_selected_tool": llm_selected_tool,
         "thought": thought,
         "tool_args": tool_args,
@@ -888,8 +894,9 @@ def run_one_sample(
     top_k_schema=DEFAULT_TOP_K,
     memory_mode="working",
     episodic_memory=None,
+    tool_backend="local",
 ):
-    tools = IterativeAgentTools(sample, schema_linker, top_k_schema=top_k_schema)
+    tools = build_tool_executor(tool_backend, sample, schema_linker, top_k_schema=top_k_schema)
     working_memory = create_working_memory(memory_mode)
     episodic_start_stats = episodic_memory.get_stats() if episodic_memory is not None else {}
     trace = []
@@ -924,6 +931,7 @@ def run_one_sample(
         "retrieve_schema",
         {"question": sample["question"], "db_id": sample["db_id"], "top_k_schema": top_k_schema},
         schema_observation,
+        tool_backend=tools.backend_name,
     )
     trace.append(
         make_trace_event(
@@ -936,6 +944,7 @@ def run_one_sample(
             working_memory,
             "",
             episodic_memory_summary=episodic_summary,
+            tool_backend=tools.backend_name,
         )
     )
     step_id += 1
@@ -955,6 +964,7 @@ def run_one_sample(
             working_memory,
             "",
             episodic_memory_summary=episodic_summary,
+            tool_backend=tools.backend_name,
         )
     )
     step_id += 1
@@ -981,6 +991,7 @@ def run_one_sample(
             working_memory,
             current_sql,
             episodic_memory_summary=episodic_summary,
+            tool_backend=tools.backend_name,
         )
     )
     step_id += 1
@@ -991,7 +1002,7 @@ def run_one_sample(
         stats["execute_call_count"] += 1
         execute_observation = {
             "success": final_result["success"],
-            "row_count": len(final_result["rows"]),
+            "row_count": final_result.get("row_count", len(final_result["rows"])),
             "rows_preview": compact_rows(final_result["rows"]),
             "error": final_result["error"],
         }
@@ -1002,6 +1013,7 @@ def run_one_sample(
             "execute_sql",
             {"db_id": sample["db_id"], "sql": current_sql},
             execute_observation,
+            tool_backend=tools.backend_name,
         )
         trace.append(
             make_trace_event(
@@ -1014,6 +1026,7 @@ def run_one_sample(
                 working_memory,
                 current_sql,
                 episodic_memory_summary=episodic_summary,
+                tool_backend=tools.backend_name,
             )
         )
         step_id += 1
@@ -1051,10 +1064,11 @@ def run_one_sample(
                     {"db_id": sample["db_id"], "sql": repaired_sql, "repair": True},
                     {
                         "success": repair_result["success"],
-                        "row_count": len(repair_result["rows"]),
+                        "row_count": repair_result.get("row_count", len(repair_result["rows"])),
                         "rows_preview": compact_rows(repair_result["rows"]),
                         "error": repair_result["error"],
                     },
+                    tool_backend=tools.backend_name,
                 )
             except Exception as exc:
                 repair_error = str(exc)
@@ -1086,7 +1100,7 @@ def run_one_sample(
                         "repair_raw_response": repair_raw_response,
                         "repaired_execute": {
                             "success": repair_result["success"],
-                            "row_count": len(repair_result["rows"]),
+                            "row_count": repair_result.get("row_count", len(repair_result["rows"])),
                             "rows_preview": compact_rows(repair_result["rows"]),
                             "error": repair_result["error"],
                         },
@@ -1095,6 +1109,7 @@ def run_one_sample(
                     working_memory,
                     current_sql,
                     episodic_memory_summary=episodic_summary,
+                    tool_backend=tools.backend_name,
                 )
             )
             step_id += 1
@@ -1128,6 +1143,7 @@ def run_one_sample(
                         working_memory,
                         current_sql,
                         episodic_memory_summary=episodic_summary,
+                        tool_backend=tools.backend_name,
                     )
                 )
                 step_id += 1
@@ -1153,6 +1169,7 @@ def run_one_sample(
                     current_sql,
                     final_sql=current_sql,
                     episodic_memory_summary=episodic_summary,
+                    tool_backend=tools.backend_name,
                 )
             )
             break
@@ -1178,6 +1195,7 @@ def run_one_sample(
                     current_sql,
                     final_sql=current_sql,
                     episodic_memory_summary=episodic_summary,
+                    tool_backend=tools.backend_name,
                 )
             )
             break
@@ -1224,6 +1242,7 @@ def run_one_sample(
                         "selected_tables": selected_tables,
                     },
                     grounding_observation,
+                    tool_backend=tools.backend_name,
                 )
                 trace.append(
                     make_trace_event(
@@ -1239,6 +1258,7 @@ def run_one_sample(
                         working_memory,
                         current_sql,
                         episodic_memory_summary=episodic_summary,
+                        tool_backend=tools.backend_name,
                     )
                 )
                 step_id += 1
@@ -1275,6 +1295,7 @@ def run_one_sample(
                     choice.get("action"),
                     choice,
                     tool_observation,
+                    tool_backend=tools.backend_name,
                 )
                 trace.append(
                     make_trace_event(
@@ -1287,6 +1308,7 @@ def run_one_sample(
                         working_memory,
                         current_sql,
                         episodic_memory_summary=episodic_summary,
+                        tool_backend=tools.backend_name,
                     )
                 )
                 step_id += 1
@@ -1317,6 +1339,7 @@ def run_one_sample(
                 working_memory,
                 current_sql,
                 episodic_memory_summary=episodic_summary,
+                tool_backend=tools.backend_name,
             )
         )
         step_id += 1
@@ -1343,6 +1366,7 @@ def run_one_sample(
                 final_sql=final_sql,
                 is_correct=ex,
                 episodic_memory_summary=episodic_summary,
+                tool_backend=tools.backend_name,
             )
         )
 
@@ -1376,8 +1400,9 @@ def run_one_sample(
         "evidence": sample.get("evidence", ""),
         "gold_sql": sample["gold_sql"],
         "method": METHOD_NAME,
+        "tool_backend": tools.backend_name,
         "memory_mode": memory_mode,
-        "schema_linker_mode": DEFAULT_LINKER_MODE,
+        "schema_linker_mode": "bm25" if tools.backend_name == "mcp" else DEFAULT_LINKER_MODE,
         "retrieved_columns": retrieved_columns,
         "selected_tables": selected_tables,
         "pred_sql": final_sql,
@@ -1411,8 +1436,9 @@ def run_one_sample_autonomous(
     max_tool_calls=DEFAULT_AUTONOMOUS_MAX_TOOL_CALLS,
     max_execute_calls=DEFAULT_AUTONOMOUS_MAX_EXECUTE_CALLS,
     max_value_search_calls=DEFAULT_AUTONOMOUS_MAX_VALUE_SEARCH_CALLS,
+    tool_backend="local",
 ):
-    tools = IterativeAgentTools(sample, schema_linker, top_k_schema=top_k_schema)
+    tools = build_tool_executor(tool_backend, sample, schema_linker, top_k_schema=top_k_schema)
     working_memory = WorkingMemory()
     trace = []
     tool_history = []
@@ -1584,6 +1610,7 @@ def run_one_sample_autonomous(
                         final_result = {
                             "success": execute_success,
                             "rows": observation.get("rows", []),
+                            "row_count": observation.get("row_count", len(observation.get("rows", []))),
                             "error": observation.get("error"),
                         }
                         if execute_success:
@@ -1639,6 +1666,7 @@ def run_one_sample_autonomous(
             final_sql=final_sql,
             finish_reason=step_finish_reason,
             budget_state=budget_state_after,
+            tool_backend=tools.backend_name,
         )
         trace.append(trace_event)
         tool_history.append(
@@ -1680,6 +1708,7 @@ def run_one_sample_autonomous(
                     final_sql,
                     finish_reason,
                     autonomous_budget_state(stats, max_steps, max_tool_calls, max_execute_calls, max_value_search_calls, max_steps),
+                    tool_backend=tools.backend_name,
                 )
             )
         else:
@@ -1700,6 +1729,7 @@ def run_one_sample_autonomous(
                     "",
                     finish_reason,
                     autonomous_budget_state(stats, max_steps, max_tool_calls, max_execute_calls, max_value_search_calls, max_steps),
+                    tool_backend=tools.backend_name,
                 )
             )
 
@@ -1723,7 +1753,8 @@ def run_one_sample_autonomous(
         "gold_sql": sample["gold_sql"],
         "method": AUTONOMOUS_METHOD_NAME,
         "tool_use_mode": "llm_decided",
-        "schema_linker_mode": DEFAULT_LINKER_MODE,
+        "tool_backend": tools.backend_name,
+        "schema_linker_mode": "bm25" if tools.backend_name == "mcp" else DEFAULT_LINKER_MODE,
         "retrieved_columns": retrieved_columns,
         "selected_tables": selected_tables,
         "pred_sql": final_sql,
@@ -1906,11 +1937,14 @@ def run_iterative_agent(
     max_execute_calls=DEFAULT_AUTONOMOUS_MAX_EXECUTE_CALLS,
     max_value_search_calls=DEFAULT_AUTONOMOUS_MAX_VALUE_SEARCH_CALLS,
     memory_mode="working",
+    tool_backend="local",
 ):
     if tool_use_mode not in {"rule_based", "llm_decided"}:
         raise ValueError("tool_use_mode must be 'rule_based' or 'llm_decided'.")
     if memory_mode not in MEMORY_MODES:
         raise ValueError("memory_mode must be 'off', 'working', or 'episodic'.")
+    if tool_backend not in {"local", "mcp"}:
+        raise ValueError("tool_backend must be 'local' or 'mcp'.")
     if max_steps is None:
         max_steps = DEFAULT_AUTONOMOUS_MAX_STEPS if tool_use_mode == "llm_decided" else DEFAULT_MAX_STEPS
 
@@ -1925,10 +1959,11 @@ def run_iterative_agent(
         for index, sample in enumerate(samples, start=1):
             db_path = sample["db_path"]
             if db_path not in linker_cache:
+                linker_mode = "bm25" if tool_backend == "mcp" else DEFAULT_LINKER_MODE
                 linker_cache[db_path] = build_schema_linker(
                     db_path=db_path,
                     top_k=top_k_schema,
-                    schema_linker_mode=DEFAULT_LINKER_MODE,
+                    schema_linker_mode=linker_mode,
                     embedding_model_path=embedding_model_path,
                 )
             if tool_use_mode == "llm_decided":
@@ -1940,6 +1975,7 @@ def run_iterative_agent(
                     max_tool_calls=max_tool_calls,
                     max_execute_calls=max_execute_calls,
                     max_value_search_calls=max_value_search_calls,
+                    tool_backend=tool_backend,
                 )
             else:
                 episodic_memory = None
@@ -1952,6 +1988,7 @@ def run_iterative_agent(
                     top_k_schema=top_k_schema,
                     memory_mode=memory_mode,
                     episodic_memory=episodic_memory,
+                    tool_backend=tool_backend,
                 )
             records.append(record)
             pred_file.write(json.dumps(record, ensure_ascii=False) + "\n")
@@ -1969,11 +2006,12 @@ def run_iterative_agent(
     metrics["max_steps"] = max_steps
     metrics["tool_use_mode"] = tool_use_mode
     metrics["memory_mode"] = memory_mode
+    metrics["tool_backend"] = tool_backend
     if tool_use_mode == "llm_decided":
         metrics["max_tool_calls"] = max_tool_calls
         metrics["max_execute_calls"] = max_execute_calls
         metrics["max_value_search_calls"] = max_value_search_calls
-    metrics["schema_linker_mode"] = DEFAULT_LINKER_MODE
+    metrics["schema_linker_mode"] = "bm25" if tool_backend == "mcp" else DEFAULT_LINKER_MODE
     metrics_path.write_text(json.dumps(metrics, ensure_ascii=False, indent=2), encoding="utf-8")
     return {
         "metrics": metrics,
@@ -2021,6 +2059,7 @@ def parse_args():
     parser.add_argument("--db-id")
     parser.add_argument("--limit", type=int)
     parser.add_argument("--tool-use-mode", choices=["rule_based", "llm_decided"], default="rule_based")
+    parser.add_argument("--tool-backend", choices=["local", "mcp"], default="local")
     parser.add_argument("--memory-mode", choices=sorted(MEMORY_MODES), default="working")
     parser.add_argument("--max-steps", type=int)
     parser.add_argument("--max-tool-calls", type=int, default=DEFAULT_AUTONOMOUS_MAX_TOOL_CALLS)
@@ -2071,6 +2110,7 @@ def main():
         max_execute_calls=args.max_execute_calls,
         max_value_search_calls=args.max_value_search_calls,
         memory_mode=args.memory_mode,
+        tool_backend=args.tool_backend,
     )
     print(json.dumps(summary, ensure_ascii=False, indent=2))
 

@@ -106,6 +106,25 @@ The repository focuses on a simple, explicit pipeline:
 
 This is intentionally closer to an enterprise BI workflow than to a pure prompt-only benchmark setup.
 
+## Agent Runtime Backend
+
+The iterative agent calls database tools through a `ToolExecutor` layer. The default backend is still `local`, which uses the existing Python implementation. Passing `--tool-backend mcp` switches the same agent loop to MCP-served tools over stdio:
+
+```bash
+PYTHONPATH=src python3 scripts/run_iterative_agent.py --db-id california_schools --limit 3 --tool-backend mcp --memory-mode working
+```
+
+Memory is backend-agnostic: `WorkingMemory` and `EpisodicMemory` only record normalized tool observations after the agent loop calls the configured executor. They do not call local or MCP tools directly.
+
+The MCP backend is validated with fixed tool-call parity and small smoke runs only:
+
+```bash
+PYTHONPATH=src python3 scripts/compare_tool_backends.py
+PYTHONPATH=src python3 scripts/run_mcp_backend_smoke.py --limit 3 --max-steps 2
+```
+
+The parity report is written to `results/iterative_agent/backend_parity_report.json`. These checks do not constitute a stratified-300 or full-dev MCP benchmark, and this repo does not claim MCP backend performance gains.
+
 ## When Does Agency Hurt?
 
 - Controlled execution-repair agent: `EX=32%`, `VSR=98%`
@@ -178,6 +197,7 @@ Useful additional entrypoints:
 ```bash
 PYTHONPATH=src python3 scripts/run_controlled_agent.py --db-id california_schools --limit 50
 PYTHONPATH=src python3 scripts/run_agent.py --db-id california_schools --limit 50
+PYTHONPATH=src python3 scripts/run_iterative_agent.py --db-id california_schools --limit 50 --tool-backend local
 PYTHONPATH=src python3 scripts/compare_controlled_with_day5.py
 ```
 

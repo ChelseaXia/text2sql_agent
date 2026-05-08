@@ -58,6 +58,13 @@ For each sample:
 6. The trace records both `working_memory_summary` and `episodic_memory_summary`.
 7. Metrics aggregate `memory_hit_count`, `memory_write_count`, and `memory_hit_rate`.
 
+Memory is backend-agnostic. The agent loop calls the configured `ToolExecutor` first, then writes the normalized tool observation into `WorkingMemory` and, when enabled, `EpisodicMemory`. Memory objects do not call local Python tools or MCP tools directly, so `local` and `mcp` backends record the same event structure:
+
+- `tool_backend`
+- `action`
+- `tool_input`
+- `observation`
+
 Supported modes:
 
 - `memory_mode=off`: disables prompt memory and episodic reuse for ablation.

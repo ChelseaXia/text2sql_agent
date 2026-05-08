@@ -4,7 +4,7 @@
 
 `src/text2sql/agents/mcp_server.py` exposes the Text2SQL database tools through a real MCP server so MCP clients and the MCP Inspector can call schema and SQL-execution tools directly.
 
-The server is a tool boundary only. It does not run the agent loop, does not call an LLM, does not run evaluator correctness, and does not use `gold_sql`.
+The server is a tool boundary only. It does not call an LLM, does not run evaluator correctness, and does not use `gold_sql`. The iterative agent can now use this server as a replaceable runtime tool backend through `MCPToolExecutor`.
 
 ## Exposed Tools
 
@@ -114,16 +114,26 @@ The MCP signatures are aligned with the standardized tools:
 
 ## Relationship To Autonomous Tool Selection
 
-Autonomous tool selection can use the same conceptual tool surface, but it remains separate from this MCP server. The autonomous policy decides which tool to call inside an agent loop. The MCP server exposes callable tools to external MCP clients.
+Autonomous tool selection can use the same conceptual tool surface, but it remains separate from this MCP server. The autonomous policy decides which tool to call inside an agent loop. The MCP server exposes callable tools to external MCP clients and to the iterative agent's MCP backend adapter.
 
-This Day 4 work does not change autonomous policy, memory logic, self-consistency, or stable pipelines.
+This runtime adapter does not change autonomous policy, self-consistency, or stable pipelines. Memory remains backend-agnostic and only observes normalized tool input/output after the agent loop calls a `ToolExecutor`.
 
 ## Validation Scope
 
-Do not run long experiments for MCP validation. The intended validation is tool connectivity:
+Do not run long experiments for MCP validation. The intended validation is tool connectivity and fixed tool-call parity:
 
 - module compiles;
 - server imports in an environment with MCP installed;
 - server starts over stdio;
 - MCP Inspector can list the five exposed tools;
-- at least one simple tool call returns `ok: true`.
+- fixed local-vs-MCP tool parity passes or records clear mismatch reasons;
+- small agent-level smoke runs show MCP backend tool calls and memory observations.
+
+Commands:
+
+```bash
+PYTHONPATH=src python3 scripts/compare_tool_backends.py
+PYTHONPATH=src python3 scripts/run_mcp_backend_smoke.py --limit 3 --max-steps 2
+```
+
+These checks are not full benchmarks and should not be reported as large-scale MCP backend EX results.
