@@ -2,3 +2,4 @@ datasets
 requests
 sentence-transformers
 openai
+mcp[cli]; python_version >= "3.10"
