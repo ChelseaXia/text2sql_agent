@@ -1777,6 +1777,13 @@ def empty_bucket():
         "argument_error_count": 0,
         "budget_exceeded_count": 0,
         "premature_finish_count": 0,
+        "memory_hit_count": 0,
+        "memory_access_count": 0,
+        "memory_write_count": 0,
+        "memory_hit_rate": 0.0,
+        "episodic_memory_hit_count": 0,
+        "episodic_memory_access_count": 0,
+        "episodic_memory_write_count": 0,
     }
 
 
@@ -1810,6 +1817,14 @@ def finalize_bucket(bucket):
         "memory_access_count": bucket["memory_access_count"],
         "memory_write_count": bucket["memory_write_count"],
         "memory_hit_rate": bucket["memory_hit_count"] / bucket["memory_access_count"] if bucket["memory_access_count"] else 0.0,
+        "episodic_memory_hit_count": bucket["episodic_memory_hit_count"],
+        "episodic_memory_access_count": bucket["episodic_memory_access_count"],
+        "episodic_memory_write_count": bucket["episodic_memory_write_count"],
+        "episodic_memory_hit_rate": (
+            bucket["episodic_memory_hit_count"] / bucket["episodic_memory_access_count"]
+            if bucket["episodic_memory_access_count"]
+            else 0.0
+        ),
     }
 
 
@@ -1831,7 +1846,7 @@ def compute_iterative_metrics(records):
             bucket["repair_success_count"] += record["repair_success_count"]
             bucket["search_column_values_count"] += record["search_column_values_count"]
             bucket["intent_plan_success_count"] += record["intent_plan_success_count"]
-            bucket["working_memory_update_count"] += record["working_memory_update_count"]
+            bucket["working_memory_update_count"] += record.get("working_memory_update_count", 0)
             bucket["validation_error_count"] += record.get("validation_error_count", 0)
             bucket["json_parse_error_count"] += record.get("json_parse_error_count", 0)
             bucket["over_exploration_count"] += record.get("over_exploration_count", 0)
@@ -1844,6 +1859,19 @@ def compute_iterative_metrics(records):
             bucket["memory_hit_count"] += record.get("memory_hit_count", 0)
             bucket["memory_access_count"] += record.get("memory_access_count", 0)
             bucket["memory_write_count"] += record.get("memory_write_count", 0)
+            episodic_stats = record.get("episodic_memory_stats") or {}
+            bucket["episodic_memory_hit_count"] += record.get(
+                "episodic_memory_hit_count",
+                episodic_stats.get("hit_count", 0),
+            )
+            bucket["episodic_memory_access_count"] += record.get(
+                "episodic_memory_access_count",
+                episodic_stats.get("access_count", 0),
+            )
+            bucket["episodic_memory_write_count"] += record.get(
+                "episodic_memory_write_count",
+                episodic_stats.get("write_count", 0),
+            )
 
     metrics = finalize_bucket(overall)
     metrics["by_difficulty"] = {name: finalize_bucket(bucket) for name, bucket in sorted(by_difficulty.items())}

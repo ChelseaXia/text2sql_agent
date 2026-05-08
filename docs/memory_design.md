@@ -127,9 +127,13 @@ The metrics include:
 - average execute-call reduction
 - `inspect_table` call reduction
 - `search_column_values` call reduction
+## Memory Ablation Result
 
-## Interpreting Results
+We evaluated episodic memory on three databases from the stratified 300 manifest: `financial`, `formula_1`, and `california_schools`, with up to 20 samples per database.
 
-If episodic memory improves EX, the likely explanation should be checked in traces: fewer repeated inspections, better value grounding, or better repair context.
+| Setting | EX | VSR | Finish Rate | Avg Tool Calls | Avg Execute Calls | Memory Hit Rate |
+| --- | ---: | ---: | ---: | ---: | ---: | ---: |
+| memory off | 25.00% | 100.00% | 100.00% | 5.10 | 1.88 | 0.00% |
+| memory on | 21.67% | 100.00% | 100.00% | 5.38 | 1.95 | 85.83% |
 
-If episodic memory does not improve EX, that is still useful. It may mean that same-db observations reduce tool calls but do not address the dominant SQL-generation errors, or that the retrieved memory is too noisy for the prompt. The ablation should be reported as-is; the evaluation should not change its correctness criterion to make memory look better.
+Although episodic memory was actively used, it did not improve accuracy. The memory-on setting reduced neither tool usage nor execution calls; instead, it introduced additional context and slightly degraded EX. This suggests that naive memory caching is insufficient: memory relevance filtering, consolidation, and selective injection are necessary before episodic memory can reliably help Text2SQL agents.

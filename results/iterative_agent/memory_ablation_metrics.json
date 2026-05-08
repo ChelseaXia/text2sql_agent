@@ -1,0 +1,222 @@
+{
+  "selected_dbs": [
+    "financial",
+    "formula_1",
+    "california_schools"
+  ],
+  "memory_off": {
+    "sample_count": 60,
+    "EX": 0.25,
+    "VSR": 1.0,
+    "finish_rate": 1.0,
+    "avg_tool_calls": 5.1,
+    "avg_execute_calls": 1.8833333333333333,
+    "inspect_table_call_count": 0,
+    "search_column_values_call_count": 61,
+    "memory_hit_count": 0,
+    "memory_access_count": 0,
+    "memory_hit_rate": 0.0,
+    "memory_write_count": 0
+  },
+  "memory_on": {
+    "sample_count": 60,
+    "EX": 0.21666666666666667,
+    "VSR": 1.0,
+    "finish_rate": 1.0,
+    "avg_tool_calls": 5.383333333333334,
+    "avg_execute_calls": 1.95,
+    "inspect_table_call_count": 1,
+    "search_column_values_call_count": 75,
+    "memory_hit_count": 103,
+    "memory_access_count": 120,
+    "memory_hit_rate": 0.8583333333333333,
+    "memory_write_count": 232
+  },
+  "overall_delta": {
+    "delta_EX": -0.033333333333333326,
+    "delta_VSR": 0.0,
+    "delta_finish_rate": 0.0,
+    "avg_tool_calls_reduction": -0.2833333333333341,
+    "avg_execute_calls_reduction": -0.06666666666666665,
+    "inspect_table_call_reduction": -1,
+    "search_column_values_call_reduction": -14
+  },
+  "first_vs_second_and_later": {
+    "memory_off": {
+      "first_question": {
+        "sample_count": 3,
+        "EX": 0.3333333333333333,
+        "VSR": 1.0,
+        "finish_rate": 1.0,
+        "avg_tool_calls": 5.333333333333333,
+        "avg_execute_calls": 2.0,
+        "inspect_table_call_count": 0,
+        "search_column_values_call_count": 3,
+        "memory_hit_count": 0,
+        "memory_access_count": 0,
+        "memory_hit_rate": 0.0,
+        "memory_write_count": 0
+      },
+      "second_and_later": {
+        "sample_count": 57,
+        "EX": 0.24561403508771928,
+        "VSR": 1.0,
+        "finish_rate": 1.0,
+        "avg_tool_calls": 5.087719298245614,
+        "avg_execute_calls": 1.8771929824561404,
+        "inspect_table_call_count": 0,
+        "search_column_values_call_count": 58,
+        "memory_hit_count": 0,
+        "memory_access_count": 0,
+        "memory_hit_rate": 0.0,
+        "memory_write_count": 0
+      }
+    },
+    "memory_on": {
+      "first_question": {
+        "sample_count": 3,
+        "EX": 0.6666666666666666,
+        "VSR": 1.0,
+        "finish_rate": 1.0,
+        "avg_tool_calls": 5.333333333333333,
+        "avg_execute_calls": 2.0,
+        "inspect_table_call_count": 0,
+        "search_column_values_call_count": 3,
+        "memory_hit_count": 3,
+        "memory_access_count": 6,
+        "memory_hit_rate": 0.5,
+        "memory_write_count": 12
+      },
+      "second_and_later": {
+        "sample_count": 57,
+        "EX": 0.19298245614035087,
+        "VSR": 1.0,
+        "finish_rate": 1.0,
+        "avg_tool_calls": 5.385964912280702,
+        "avg_execute_calls": 1.9473684210526316,
+        "inspect_table_call_count": 1,
+        "search_column_values_call_count": 72,
+        "memory_hit_count": 100,
+        "memory_access_count": 114,
+        "memory_hit_rate": 0.8771929824561403,
+        "memory_write_count": 220
+      }
+    }
+  },
+  "by_db": {
+    "financial": {
+      "memory_off": {
+        "sample_count": 20,
+        "EX": 0.15,
+        "VSR": 1.0,
+        "finish_rate": 1.0,
+        "avg_tool_calls": 5.5,
+        "avg_execute_calls": 2.0,
+        "inspect_table_call_count": 0,
+        "search_column_values_call_count": 28,
+        "memory_hit_count": 0,
+        "memory_access_count": 0,
+        "memory_hit_rate": 0.0,
+        "memory_write_count": 0
+      },
+      "memory_on": {
+        "sample_count": 20,
+        "EX": 0.1,
+        "VSR": 1.0,
+        "finish_rate": 1.0,
+        "avg_tool_calls": 5.5,
+        "avg_execute_calls": 2.05,
+        "inspect_table_call_count": 1,
+        "search_column_values_call_count": 25,
+        "memory_hit_count": 38,
+        "memory_access_count": 40,
+        "memory_hit_rate": 0.95,
+        "memory_write_count": 80
+      },
+      "delta_EX": -0.04999999999999999,
+      "delta_VSR": 0.0,
+      "delta_finish_rate": 0.0,
+      "avg_tool_calls_reduction": 0.0,
+      "avg_execute_calls_reduction": -0.04999999999999982,
+      "inspect_table_call_reduction": -1,
+      "search_column_values_call_reduction": 3
+    },
+    "formula_1": {
+      "memory_off": {
+        "sample_count": 20,
+        "EX": 0.4,
+        "VSR": 1.0,
+        "finish_rate": 1.0,
+        "avg_tool_calls": 4.4,
+        "avg_execute_calls": 1.7,
+        "inspect_table_call_count": 0,
+        "search_column_values_call_count": 10,
+        "memory_hit_count": 0,
+        "memory_access_count": 0,
+        "memory_hit_rate": 0.0,
+        "memory_write_count": 0
+      },
+      "memory_on": {
+        "sample_count": 20,
+        "EX": 0.4,
+        "VSR": 1.0,
+        "finish_rate": 1.0,
+        "avg_tool_calls": 4.6,
+        "avg_execute_calls": 1.8,
+        "inspect_table_call_count": 0,
+        "search_column_values_call_count": 11,
+        "memory_hit_count": 29,
+        "memory_access_count": 40,
+        "memory_hit_rate": 0.725,
+        "memory_write_count": 72
+      },
+      "delta_EX": 0.0,
+      "delta_VSR": 0.0,
+      "delta_finish_rate": 0.0,
+      "avg_tool_calls_reduction": -0.1999999999999993,
+      "avg_execute_calls_reduction": -0.10000000000000009,
+      "inspect_table_call_reduction": 0,
+      "search_column_values_call_reduction": -1
+    },
+    "california_schools": {
+      "memory_off": {
+        "sample_count": 20,
+        "EX": 0.2,
+        "VSR": 1.0,
+        "finish_rate": 1.0,
+        "avg_tool_calls": 5.4,
+        "avg_execute_calls": 1.95,
+        "inspect_table_call_count": 0,
+        "search_column_values_call_count": 23,
+        "memory_hit_count": 0,
+        "memory_access_count": 0,
+        "memory_hit_rate": 0.0,
+        "memory_write_count": 0
+      },
+      "memory_on": {
+        "sample_count": 20,
+        "EX": 0.15,
+        "VSR": 1.0,
+        "finish_rate": 1.0,
+        "avg_tool_calls": 6.05,
+        "avg_execute_calls": 2.0,
+        "inspect_table_call_count": 0,
+        "search_column_values_call_count": 39,
+        "memory_hit_count": 36,
+        "memory_access_count": 40,
+        "memory_hit_rate": 0.9,
+        "memory_write_count": 80
+      },
+      "delta_EX": -0.05000000000000002,
+      "delta_VSR": 0.0,
+      "delta_finish_rate": 0.0,
+      "avg_tool_calls_reduction": -0.6499999999999995,
+      "avg_execute_calls_reduction": -0.050000000000000044,
+      "inspect_table_call_reduction": 0,
+      "search_column_values_call_reduction": -16
+    }
+  },
+  "seed": 42,
+  "per_db_limit": 20,
+  "manifest": "results/iterative_agent/stratified_300_manifest.jsonl"
+}
