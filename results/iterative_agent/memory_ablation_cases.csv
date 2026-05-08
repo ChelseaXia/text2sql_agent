@@ -1,0 +1,1380 @@
+sample_id,db_id,difficulty,memory_ablation_order,question,memory_off_correct,memory_on_correct,memory_off_vsr,memory_on_vsr,memory_off_tool_calls,memory_on_tool_calls,memory_off_execute_calls,memory_on_execute_calls,memory_hit_count,memory_write_count,memory_on_final_sql,memory_off_final_sql
+118,financial,challenging,1,"For loans under $100,000, what is the percentage of loans running with no issues in each region and loan size category, and how does each region's performance compare to the overall average?",False,False,True,True,6,6,2,2,1,4,"SELECT 
+    d.A3 AS region,
+    CASE 
+        WHEN l.amount < 50000 THEN 'Small'
+        WHEN l.amount >= 50000 AND l.amount < 100000 THEN 'Medium'
+    END AS loan_size_category,
+    ROUND(100.0 * SUM(CASE WHEN l.status = 'C' THEN 1 ELSE 0 END) / COUNT(*), 2) AS percentage,
+    ROUND(100.0 * (SELECT SUM(CASE WHEN status = 'C' THEN 1 ELSE 0 END) FROM loan WHERE amount < 100000) / (SELECT COUNT(*) FROM loan WHERE amount < 100000), 2) AS overall_avg_percentage
+FROM loan l
+JOIN account a ON l.account_id = a.account_id
+JOIN district d ON a.district_id = d.district_id
+WHERE l.amount < 100000
+GROUP BY d.A3, loan_size_category
+ORDER BY d.A3, loan_size_category;","SELECT 
+    d.A3 AS region,
+    CASE 
+        WHEN l.amount < 50000 THEN 'Small'
+        WHEN l.amount >= 50000 AND l.amount < 100000 THEN 'Medium'
+    END AS loan_size_category,
+    ROUND(100.0 * SUM(CASE WHEN l.status = 'C' THEN 1 ELSE 0 END) / COUNT(*), 2) AS percentage_running_no_issues,
+    ROUND(100.0 * SUM(CASE WHEN l.status = 'C' THEN 1 ELSE 0 END) OVER (PARTITION BY d.A3) / COUNT(*) OVER (PARTITION BY d.A3), 2) AS region_avg,
+    ROUND(100.0 * SUM(CASE WHEN l.status = 'C' THEN 1 ELSE 0 END) OVER () / COUNT(*) OVER (), 2) AS overall_avg
+FROM loan l
+JOIN account a ON l.account_id = a.account_id
+JOIN district d ON a.district_id = d.district_id
+WHERE l.amount < 100000
+GROUP BY d.A3, loan_size_category
+ORDER BY d.A3, loan_size_category;"
+97,financial,challenging,2,"For all disponent clients with accounts that have post-transaction issuance statements, provide a comprehensive profile including their loan statistics, transaction activity, credit card information, and categorize them based on their service usage, ranked by transaction volume.",False,False,True,True,5,5,2,2,2,4,"SELECT 
+    c.client_id,
+    c.gender,
+    c.birth_date,
+    COUNT(DISTINCT t.trans_id) AS transaction_volume,
+    SUM(l.amount) AS total_loan_amount,
+    AVG(l.amount) AS avg_loan_amount,
+    COUNT(DISTINCT l.loan_id) AS loan_count,
+    COUNT(DISTINCT cd.card_id) AS card_count,
+    GROUP_CONCAT(DISTINCT cd.type) AS card_types,
+    CASE 
+        WHEN COUNT(DISTINCT l.loan_id) > 0 AND COUNT(DISTINCT cd.card_id) > 0 THEN 'Both Loans and Cards'
+        WHEN COUNT(DISTINCT l.loan_id) > 0 THEN 'Loans Only'
+        WHEN COUNT(DISTINCT cd.card_id) > 0 THEN 'Cards Only'
+        ELSE 'No Services'
+    END AS service_category
+FROM client c
+JOIN disp d ON c.client_id = d.client_id AND d.type = 'DISPONENT'
+JOIN account a ON d.account_id = a.account_id AND a.frequency = 'POPLATEK PO OBRATU'
+LEFT JOIN loan l ON a.account_id = l.account_id
+LEFT JOIN trans t ON a.account_id = t.account_id
+LEFT JOIN card cd ON d.disp_id = cd.disp_id
+GROUP BY c.client_id
+ORDER BY transaction_volume DESC;","SELECT 
+    c.client_id,
+    c.gender,
+    c.birth_date,
+    d.district_id,
+    d.A2 AS district_name,
+    d.A3 AS region,
+    l.loan_id,
+    l.amount AS loan_amount,
+    l.duration AS loan_duration,
+    l.payments AS monthly_payment,
+    l.status AS loan_status,
+    COUNT(DISTINCT t.trans_id) AS transaction_count,
+    SUM(CASE WHEN t.type = 'PRIJEM' THEN t.amount ELSE 0 END) AS total_credit,
+    SUM(CASE WHEN t.type = 'VYDAJ' THEN t.amount ELSE 0 END) AS total_withdrawal,
+    MAX(t.date) AS last_transaction_date,
+    cd.card_id,
+    cd.type AS card_type,
+    cd.issued AS card_issued_date,
+    CASE 
+        WHEN l.status = 'A' THEN 'Active'
+        WHEN l.status = 'B' THEN 'Completed'
+        ELSE 'Other'
+    END AS loan_category,
+    CASE 
+        WHEN cd.type IS NOT NULL THEN 'Has Card'
+        ELSE 'No Card'
+    END AS card_usage,
+    CASE 
+        WHEN COUNT(DISTINCT t.trans_id) > 0 THEN 'Has Transactions'
+        ELSE 'No Transactions'
+    END AS transaction_activity
+FROM client c
+JOIN disp dp ON c.client_id = dp.client_id AND dp.type = 'DISPONENT'
+JOIN account a ON dp.account_id = a.account_id AND a.frequency = 'POPLATEK PO OBRATU'
+LEFT JOIN loan l ON a.account_id = l.account_id
+LEFT JOIN trans t ON a.account_id = t.account_id
+LEFT JOIN card cd ON dp.disp_id = cd.disp_id
+LEFT JOIN district d ON c.district_id = d.district_id
+GROUP BY c.client_id, l.loan_id, cd.card_id
+ORDER BY transaction_count DESC;"
+182,financial,moderate,3,How many male customers who were born between 1974 and 1976 have made a payment on their home in excess of $4000?,False,False,True,True,5,5,2,2,1,4,"SELECT COUNT(DISTINCT c.client_id)
+FROM client c
+JOIN disp d ON c.client_id = d.client_id
+JOIN account a ON d.account_id = a.account_id
+JOIN ""order"" o ON a.account_id = o.account_id
+WHERE c.gender = 'M'
+  AND c.birth_date BETWEEN '1974-01-01' AND '1976-12-31'
+  AND o.k_symbol = 'SIPO'
+  AND o.amount > 4000;","SELECT COUNT(DISTINCT c.client_id)
+FROM client c
+JOIN disp d ON c.client_id = d.client_id
+JOIN account a ON d.account_id = a.account_id
+JOIN trans t ON a.account_id = t.account_id
+WHERE c.gender = 'M'
+  AND c.birth_date BETWEEN '1974-01-01' AND '1976-12-31'
+  AND t.k_symbol = 'SIPO'
+  AND t.amount > 4000;"
+124,financial,challenging,4,"For 60-month loans, show me the top 3 largest loans in each district, including the district's average salary, loan details, client demographics, transaction history, and calculated interest rate. Order the results by highest average salary and loan amount.",False,False,True,True,5,6,2,3,2,5,"SELECT 
+    d.A2 AS district_name,
+    d.A11 AS average_salary,
+    l.loan_id,
+    l.amount AS loan_amount,
+    l.duration,
+    l.payments,
+    l.status,
+    c.client_id,
+    c.gender,
+    c.birth_date,
+    t.trans_id,
+    t.date AS transaction_date,
+    t.type AS transaction_type,
+    t.operation,
+    t.amount AS transaction_amount,
+    t.balance,
+    t.k_symbol AS transaction_k_symbol,
+    ROUND(((l.payments * l.duration - l.amount) * 1.0 / l.amount) * 100, 2) AS interest_rate
+FROM loan l
+JOIN disp dp ON l.account_id = dp.account_id
+JOIN client c ON dp.client_id = c.client_id
+JOIN district d ON c.district_id = d.district_id
+JOIN trans t ON l.account_id = t.account_id
+WHERE l.duration = 60
+  AND l.status IN ('A', 'B', 'C', 'D')
+  AND (SELECT COUNT(*) FROM loan l2 
+       WHERE l2.duration = 60 AND l2.status IN ('A','B','C','D') 
+         AND l2.account_id IN (SELECT account_id FROM disp JOIN client ON disp.client_id = client.client_id WHERE client.district_id = d.district_id)
+         AND l2.amount > l.amount) < 3
+ORDER BY d.A11 DESC, l.amount DESC;","SELECT 
+    d.A2 AS district_name,
+    d.A11 AS average_salary,
+    l.loan_id,
+    l.amount AS loan_amount,
+    l.duration,
+    l.payments,
+    l.status,
+    l.date AS loan_date,
+    c.client_id,
+    c.gender,
+    c.birth_date,
+    (l.payments * l.duration - l.amount) * 100.0 / l.amount AS interest_rate,
+    t.trans_id,
+    t.date AS transaction_date,
+    t.type AS transaction_type,
+    t.operation,
+    t.amount AS transaction_amount,
+    t.balance
+FROM loan l
+JOIN disp dp ON l.account_id = dp.account_id
+JOIN client c ON dp.client_id = c.client_id
+JOIN district d ON c.district_id = d.district_id
+LEFT JOIN trans t ON l.account_id = t.account_id
+WHERE l.duration = 60
+  AND (
+    SELECT COUNT(*)
+    FROM loan l2
+    JOIN disp dp2 ON l2.account_id = dp2.account_id
+    JOIN client c2 ON dp2.client_id = c2.client_id
+    WHERE c2.district_id = c.district_id
+      AND l2.duration = 60
+      AND (l2.amount > l.amount OR (l2.amount = l.amount AND l2.loan_id < l.loan_id))
+  ) < 3
+ORDER BY d.A11 DESC, l.amount DESC;"
+123,financial,challenging,5,"For accounts with loans exceeding $300,000 in districts where the average salary is above the national average, show me the account details including district, region, loan statistics, account owner demographics, income classification, transaction activity, savings ratio, and how they rank within their region by maximum loan amount. Only include accounts with positive net income or no transaction history, and limit results to the top 100 by maximum loan amount.",False,False,True,True,10,9,2,2,2,4,"WITH district_avg_salary AS (
+    SELECT AVG(A11) AS avg_salary FROM district
+),
+account_income AS (
+    SELECT 
+        a.account_id,
+        SUM(CASE WHEN t.type = 'PRIJEM' THEN t.amount ELSE 0 END) AS total_income,
+        SUM(CASE WHEN t.type = 'VYDAJ' THEN t.amount ELSE 0 END) AS total_expense,
+        CASE 
+            WHEN SUM(CASE WHEN t.type = 'PRIJEM' THEN t.amount ELSE 0 END) > 1000000 THEN 'High Income'
+            WHEN SUM(CASE WHEN t.type = 'PRIJEM' THEN t.amount ELSE 0 END) > 500000 THEN 'Medium Income'
+            ELSE 'Low Income'
+        END AS income_classification,
+        CASE 
+            WHEN COUNT(t.trans_id) = 0 THEN NULL
+            ELSE (SUM(CASE WHEN t.type = 'PRIJEM' THEN t.amount ELSE 0 END) - SUM(CASE WHEN t.type = 'VYDAJ' THEN t.amount ELSE 0 END)) * 1.0 / NULLIF(SUM(CASE WHEN t.type = 'PRIJEM' THEN t.amount ELSE 0 END), 0)
+        END AS savings_ratio,
+        SUM(CASE WHEN t.type = 'PRIJEM' THEN t.amount ELSE 0 END) - SUM(CASE WHEN t.type = 'VYDAJ' THEN t.amount ELSE 0 END) AS net_income
+    FROM account a
+    LEFT JOIN trans t ON a.account_id = t.account_id
+    GROUP BY a.account_id
+),
+ranked_accounts AS (
+    SELECT 
+        a.account_id,
+        d.A2 AS district_name,
+        d.A3 AS region,
+        l.amount AS loan_amount,
+        l.duration,
+        l.payments,
+        l.status,
+        c.client_id,
+        ai.income_classification,
+        ai.savings_ratio,
+        ai.net_income,
+        ai.total_income,
+        ai.total_expense,
+        RANK() OVER (PARTITION BY d.A3 ORDER BY l.amount DESC) AS region_rank
+    FROM account a
+    JOIN district d ON a.district_id = d.district_id
+    JOIN loan l ON a.account_id = l.account_id
+    JOIN disp dp ON a.account_id = dp.account_id
+    JOIN client c ON dp.client_id = c.client_id
+    LEFT JOIN account_income ai ON a.account_id = ai.account_id
+    WHERE l.amount > 300000
+      AND d.A11 > (SELECT avg_salary FROM district_avg_salary)
+      AND (ai.net_income > 0 OR ai.net_income IS NULL)
+)
+SELECT 
+    account_id,
+    district_name,
+    region,
+    loan_amount,
+    duration,
+    payments,
+    status,
+    client_id,
+    income_classification,
+    savings_ratio,
+    total_income,
+    total_expense,
+    region_rank
+FROM ranked_accounts
+ORDER BY loan_amount DESC
+LIMIT 100;","WITH district_avg AS (
+    SELECT AVG(A11) AS national_avg_salary FROM district
+),
+high_salary_districts AS (
+    SELECT district_id, A2 AS district_name, A3 AS region, A11 AS avg_salary
+    FROM district
+    WHERE A11 > (SELECT national_avg_salary FROM district_avg)
+),
+account_income AS (
+    SELECT 
+        account_id,
+        SUM(CASE WHEN type = 'PRIJEM' THEN amount ELSE 0 END) AS total_income,
+        SUM(CASE WHEN type = 'VYDAJ' THEN amount ELSE 0 END) AS total_expense
+    FROM trans
+    GROUP BY account_id
+),
+account_savings AS (
+    SELECT 
+        account_id,
+        total_income,
+        total_expense,
+        CASE 
+            WHEN total_income > 0 THEN (total_income - total_expense) * 1.0 / total_income 
+            ELSE NULL 
+        END AS savings_ratio
+    FROM account_income
+),
+account_classification AS (
+    SELECT 
+        account_id,
+        CASE 
+            WHEN total_income > 1000000 THEN 'High Income'
+            WHEN total_income > 500000 THEN 'Medium Income'
+            ELSE 'Low Income'
+        END AS income_classification
+    FROM account_income
+),
+loan_data AS (
+    SELECT 
+        l.account_id,
+        l.amount AS loan_amount,
+        l.duration,
+        l.payments,
+        l.status,
+        l.date AS loan_date
+    FROM loan l
+    WHERE l.amount > 300000
+),
+account_owner AS (
+    SELECT 
+        d.account_id,
+        d.client_id,
+        d.type AS disposition_type
+    FROM disp d
+    WHERE d.type = 'OWNER'
+),
+ranked_accounts AS (
+    SELECT 
+        hsd.district_name,
+        hsd.region,
+        hsd.avg_salary,
+        ld.loan_amount,
+        ld.duration,
+        ld.payments,
+        ld.status,
+        ld.loan_date,
+        ao.client_id,
+        ao.disposition_type,
+        ac.income_classification,
+        acs.total_income,
+        acs.total_expense,
+        acs.savings_ratio,
+        RANK() OVER (PARTITION BY hsd.region ORDER BY ld.loan_amount DESC) AS region_rank
+    FROM high_salary_districts hsd
+    JOIN account a ON a.district_id = hsd.district_id
+    JOIN loan_data ld ON ld.account_id = a.account_id
+    JOIN account_owner ao ON ao.account_id = a.account_id
+    LEFT JOIN account_classification ac ON ac.account_id = a.account_id
+    LEFT JOIN account_savings acs ON acs.account_id = a.account_id
+    WHERE (acs.total_income IS NULL OR acs.total_income > acs.total_expense)
+)
+SELECT 
+    district_name,
+    region,
+    avg_salary,
+    loan_amount,
+    duration,
+    payments,
+    status,
+    loan_date,
+    client_id,
+    disposition_type,
+    income_classification,
+    total_income,
+    total_expense,
+    savings_ratio,
+    region_rank
+FROM ranked_accounts
+ORDER BY loan_amount DESC
+LIMIT 100;"
+136,financial,moderate,6,"Between 1/1/1995 and 12/31/1997, how many loans in the amount of at least 250,000 per account that chose monthly statement issuance were approved?",True,False,True,True,5,5,2,2,2,4,"SELECT a.account_id, COUNT(l.loan_id) 
+FROM loan l 
+JOIN account a ON l.account_id = a.account_id 
+WHERE l.date BETWEEN '1995-01-01' AND '1997-12-31' 
+  AND l.amount >= 250000 
+  AND a.frequency = 'POPLATEK MESICNE' 
+GROUP BY a.account_id;","SELECT COUNT(DISTINCT l.loan_id)
+FROM loan l
+JOIN account a ON l.account_id = a.account_id
+WHERE a.frequency = 'POPLATEK MESICNE'
+  AND l.amount >= 250000
+  AND l.date BETWEEN '1995-01-01' AND '1997-12-31';"
+176,financial,simple,7,"What is the amount of debt that client number 992 has, and how is this client doing with payments?",True,True,True,True,3,3,1,1,2,2,"SELECT l.amount, l.status 
+FROM client c 
+JOIN disp d ON c.client_id = d.client_id 
+JOIN account a ON d.account_id = a.account_id 
+JOIN loan l ON a.account_id = l.account_id 
+WHERE c.client_id = 992;","SELECT l.amount AS debt_amount, l.status AS payment_status
+FROM loan l
+JOIN disp d ON l.account_id = d.account_id
+JOIN client c ON d.client_id = c.client_id
+WHERE c.client_id = 992;"
+189,financial,moderate,8,Name the account numbers of female clients who are oldest and have lowest average salary?,True,False,True,True,5,5,2,2,2,4,"SELECT a.account_id
+FROM client c
+JOIN disp d ON c.client_id = d.client_id
+JOIN account a ON d.account_id = a.account_id
+JOIN district di ON a.district_id = di.district_id
+WHERE c.gender = 'F'
+  AND di.A11 = (SELECT MIN(A11) FROM district)
+  AND c.birth_date = (
+    SELECT MIN(c2.birth_date)
+    FROM client c2
+    JOIN disp d2 ON c2.client_id = d2.client_id
+    JOIN account a2 ON d2.account_id = a2.account_id
+    JOIN district di2 ON a2.district_id = di2.district_id
+    WHERE c2.gender = 'F'
+      AND di2.A11 = (SELECT MIN(A11) FROM district)
+  );","SELECT a.account_id
+FROM account a
+JOIN disp d ON a.account_id = d.account_id
+JOIN client c ON d.client_id = c.client_id
+JOIN district di ON a.district_id = di.district_id
+WHERE c.gender = 'F'
+  AND c.birth_date = (SELECT MIN(birth_date) FROM client WHERE gender = 'F')
+  AND di.A11 = (SELECT MIN(A11) FROM district WHERE district_id IN (
+      SELECT a2.district_id FROM account a2
+      JOIN disp d2 ON a2.account_id = d2.account_id
+      JOIN client c2 ON d2.client_id = c2.client_id
+      WHERE c2.gender = 'F' AND c2.birth_date = (SELECT MIN(birth_date) FROM client WHERE gender = 'F')
+  ));"
+113,financial,challenging,9,"For the client who applied for a 98832 USD loan on January 3rd, 1996, provide a comprehensive profile including their birthday, age at the time of loan application, location, transaction history before the loan, expense-to-income ratio, balance range, credit card information, and number of previous loans.",False,False,True,True,6,5,3,2,2,4,"SELECT 
+    c.client_id,
+    c.birth_date,
+    (CAST(julianday('1996-01-03') - julianday(c.birth_date) AS INTEGER) / 365) AS age_at_loan,
+    d.A2 AS district_name,
+    d.A3 AS region,
+    COUNT(DISTINCT t.trans_id) AS num_transactions_before_loan,
+    SUM(CASE WHEN t.type = 'VYDAJ' THEN t.amount ELSE 0 END) AS total_expenses,
+    SUM(CASE WHEN t.type = 'PRIJEM' THEN t.amount ELSE 0 END) AS total_income,
+    CASE 
+        WHEN SUM(CASE WHEN t.type = 'PRIJEM' THEN t.amount ELSE 0 END) > 0 
+        THEN (SUM(CASE WHEN t.type = 'VYDAJ' THEN t.amount ELSE 0 END) * 100.0 / SUM(CASE WHEN t.type = 'PRIJEM' THEN t.amount ELSE 0 END))
+        ELSE NULL 
+    END AS expense_to_income_ratio,
+    MIN(t.balance) AS min_balance,
+    MAX(t.balance) AS max_balance,
+    cd.type AS card_type,
+    cd.issued AS card_issued_date,
+    (SELECT COUNT(*) FROM loan l2 WHERE l2.account_id = a.account_id AND l2.date < '1996-01-03') AS num_previous_loans
+FROM client c
+JOIN disp dp ON c.client_id = dp.client_id
+JOIN account a ON dp.account_id = a.account_id
+JOIN district d ON c.district_id = d.district_id
+JOIN loan l ON a.account_id = l.account_id AND l.amount = 98832 AND l.date = '1996-01-03'
+LEFT JOIN trans t ON a.account_id = t.account_id AND t.date < '1996-01-03'
+LEFT JOIN card cd ON dp.disp_id = cd.disp_id
+GROUP BY c.client_id, c.birth_date, d.A2, d.A3, cd.type, cd.issued, a.account_id;","WITH client_loan AS (
+    SELECT c.client_id, c.birth_date, c.district_id AS client_district_id,
+           l.account_id, l.date AS loan_date, l.amount AS loan_amount
+    FROM client c
+    JOIN disp dp ON c.client_id = dp.client_id AND dp.type = 'OWNER'
+    JOIN loan l ON dp.account_id = l.account_id
+    WHERE l.amount = 98832 AND l.date = '1996-01-03'
+),
+trans_before AS (
+    SELECT account_id,
+           SUM(CASE WHEN type = 'VYDAJ' THEN amount ELSE 0 END) AS total_expenses,
+           SUM(CASE WHEN type = 'PRIJEM' THEN amount ELSE 0 END) AS total_income,
+           MIN(balance) AS min_balance,
+           MAX(balance) AS max_balance
+    FROM trans
+    WHERE date < (SELECT loan_date FROM client_loan)
+      AND account_id = (SELECT account_id FROM client_loan)
+),
+prev_loans AS (
+    SELECT COUNT(*) AS cnt
+    FROM loan l
+    WHERE l.account_id = (SELECT account_id FROM client_loan)
+      AND l.date < (SELECT loan_date FROM client_loan)
+)
+SELECT cl.client_id,
+       cl.birth_date,
+       ROUND((julianday(cl.loan_date) - julianday(cl.birth_date)) / 365.25, 2) AS age_at_loan,
+       d.A2 AS district_name,
+       d.A3 AS region,
+       tb.total_expenses,
+       tb.total_income,
+       CASE WHEN tb.total_income > 0 THEN ROUND(tb.total_expenses * 100.0 / tb.total_income, 2) ELSE NULL END AS expense_to_income_ratio,
+       tb.min_balance,
+       tb.max_balance,
+       cd.card_id,
+       cd.type AS card_type,
+       cd.issued AS card_issued,
+       pl.cnt AS previous_loans
+FROM client_loan cl
+JOIN district d ON cl.client_district_id = d.district_id
+LEFT JOIN trans_before tb ON 1=1
+LEFT JOIN prev_loans pl ON 1=1
+LEFT JOIN card cd ON cd.disp_id = (SELECT disp_id FROM disp WHERE account_id = cl.account_id AND client_id = cl.client_id LIMIT 1);"
+127,financial,challenging,10,"For accounts with monthly statement issuance, provide a comprehensive financial profile including client demographics, transaction activity, loan details, and rankings by transaction volume and cash flow performance.",False,False,True,True,5,5,2,2,2,4,"SELECT 
+    c.client_id,
+    c.gender,
+    c.birth_date,
+    a.account_id,
+    a.frequency,
+    COUNT(t.trans_id) AS transaction_volume,
+    SUM(CASE WHEN t.type = 'PRIJEM' THEN t.amount ELSE 0 END) - SUM(CASE WHEN t.type = 'VYDAJ' THEN t.amount ELSE 0 END) AS net_cash_flow,
+    l.loan_id,
+    l.amount AS loan_amount,
+    l.duration AS loan_duration,
+    l.status AS loan_status,
+    RANK() OVER (ORDER BY COUNT(t.trans_id) DESC) AS transaction_volume_rank,
+    RANK() OVER (ORDER BY (SUM(CASE WHEN t.type = 'PRIJEM' THEN t.amount ELSE 0 END) - SUM(CASE WHEN t.type = 'VYDAJ' THEN t.amount ELSE 0 END)) DESC) AS cash_flow_rank
+FROM account a
+JOIN disp d ON a.account_id = d.account_id
+JOIN client c ON d.client_id = c.client_id
+LEFT JOIN trans t ON a.account_id = t.account_id
+LEFT JOIN loan l ON a.account_id = l.account_id
+WHERE a.frequency = 'POPLATEK MESICNE'
+GROUP BY a.account_id, c.client_id, l.loan_id;","SELECT 
+    a.account_id,
+    c.client_id,
+    c.gender,
+    c.birth_date,
+    COUNT(DISTINCT t.trans_id) AS transaction_count,
+    SUM(CASE WHEN t.type = 'PRIJEM' THEN t.amount ELSE 0 END) - SUM(CASE WHEN t.type = 'VYDAJ' THEN t.amount ELSE 0 END) AS net_cash_flow,
+    l.loan_id,
+    l.amount AS loan_amount,
+    l.duration,
+    l.status,
+    RANK() OVER (ORDER BY COUNT(DISTINCT t.trans_id) DESC) AS transaction_volume_rank,
+    RANK() OVER (ORDER BY (SUM(CASE WHEN t.type = 'PRIJEM' THEN t.amount ELSE 0 END) - SUM(CASE WHEN t.type = 'VYDAJ' THEN t.amount ELSE 0 END)) DESC) AS cash_flow_rank
+FROM account a
+JOIN disp d ON a.account_id = d.account_id
+JOIN client c ON d.client_id = c.client_id
+LEFT JOIN trans t ON a.account_id = t.account_id
+LEFT JOIN loan l ON a.account_id = l.account_id
+WHERE a.frequency = 'POPLATEK MESICNE'
+GROUP BY a.account_id, c.client_id, c.gender, c.birth_date, l.loan_id, l.amount, l.duration, l.status;"
+193,financial,moderate,11,List all ID and district for clients that can only have the right to issue permanent orders or apply for loans.,False,False,True,True,5,5,2,2,2,4,"SELECT c.client_id, d.A2 
+FROM client c 
+JOIN disp di ON c.client_id = di.client_id 
+JOIN district d ON c.district_id = d.district_id 
+WHERE di.type = 'OWNER';","SELECT c.client_id, c.district_id
+FROM client c
+JOIN disp d ON c.client_id = d.client_id
+WHERE d.type = 'OWNER';"
+119,financial,challenging,12,"For accounts opened in 1993 with statements issued after transactions, provide a comprehensive analysis including district information, transaction activity, client demographics, loan details, and risk assessment.",False,False,True,True,10,10,2,2,2,4,"SELECT 
+    a.account_id,
+    a.date AS account_opened,
+    a.frequency,
+    d.A2 AS district_name,
+    d.A3 AS region,
+    d.A10 AS urban_ratio,
+    d.A11 AS avg_salary,
+    d.A12 AS unemployment_1995,
+    d.A13 AS unemployment_1996,
+    d.A14 AS entrepreneurs_per_1000,
+    d.A15 AS crimes_1995,
+    d.A16 AS crimes_1996,
+    COUNT(DISTINCT t.trans_id) AS num_transactions,
+    SUM(CASE WHEN t.type = 'PRIJEM' THEN t.amount ELSE 0 END) AS total_income,
+    SUM(CASE WHEN t.type = 'VYDAJ' THEN t.amount ELSE 0 END) AS total_expenses,
+    AVG(t.balance) AS avg_balance,
+    l.loan_id,
+    l.amount AS loan_amount,
+    l.duration AS loan_duration,
+    l.payments AS monthly_payment,
+    l.status AS loan_status,
+    CASE 
+        WHEN l.status = 'A' THEN 'Running contract'
+        WHEN l.status = 'B' THEN 'Finished contract'
+        WHEN l.status = 'C' THEN 'Defaulted loan'
+        ELSE 'Unknown'
+    END AS risk_assessment,
+    COUNT(DISTINCT o.order_id) AS num_orders,
+    SUM(o.amount) AS total_order_amount,
+    COUNT(DISTINCT c.card_id) AS num_cards
+FROM account a
+JOIN district d ON a.district_id = d.district_id
+LEFT JOIN trans t ON a.account_id = t.account_id
+LEFT JOIN loan l ON a.account_id = l.account_id
+LEFT JOIN ""order"" o ON a.account_id = o.account_id
+LEFT JOIN disp dp ON a.account_id = dp.account_id
+LEFT JOIN card c ON dp.disp_id = c.disp_id
+WHERE a.date LIKE '1993%' AND a.frequency = 'POPLATEK PO OBRATU'
+GROUP BY a.account_id;","SELECT 
+    a.account_id,
+    a.date AS account_open_date,
+    d.A2 AS district_name,
+    d.A3 AS region,
+    d.A10 AS urban_ratio,
+    d.A11 AS avg_salary,
+    d.A12 AS unemployment_1995,
+    d.A13 AS unemployment_1996,
+    d.A14 AS entrepreneurs_per_1000,
+    d.A15 AS crimes_1995,
+    d.A16 AS crimes_1996,
+    COUNT(t.trans_id) AS total_transactions,
+    SUM(CASE WHEN t.type = 'PRIJEM' THEN t.amount ELSE 0 END) AS total_income,
+    SUM(CASE WHEN t.type = 'VYDAJ' THEN t.amount ELSE 0 END) AS total_expenses,
+    l.loan_id,
+    l.amount AS loan_amount,
+    l.duration AS loan_duration_months,
+    l.payments AS monthly_payment,
+    l.status AS loan_status,
+    CASE 
+        WHEN l.status = 'A' THEN 'Running contract'
+        WHEN l.status = 'B' THEN 'Finished contract'
+        WHEN l.status = 'C' THEN 'Defaulted loan'
+        ELSE 'Unknown'
+    END AS loan_status_description
+FROM account a
+LEFT JOIN district d ON a.district_id = d.district_id
+LEFT JOIN trans t ON a.account_id = t.account_id
+LEFT JOIN loan l ON a.account_id = l.account_id
+WHERE strftime('%Y', a.date) = '1993'
+  AND a.frequency = 'POPLATEK PO OBRATU'
+GROUP BY a.account_id, l.loan_id;"
+107,financial,simple,13,What is the gender of the oldest client who opened his/her account in the highest average salary branch?,False,False,True,True,5,5,2,2,2,4,"SELECT c.gender
+FROM client c
+JOIN disp d ON c.client_id = d.client_id
+JOIN account a ON d.account_id = a.account_id
+JOIN district di ON a.district_id = di.district_id
+WHERE di.A11 = (SELECT MAX(A11) FROM district)
+ORDER BY c.birth_date ASC
+LIMIT 1;","SELECT c.gender
+FROM client c
+JOIN disp d ON c.client_id = d.client_id
+JOIN account a ON d.account_id = a.account_id
+JOIN district di ON a.district_id = di.district_id
+WHERE di.A11 = (SELECT MAX(A11) FROM district)
+ORDER BY c.birth_date ASC
+LIMIT 1;"
+111,financial,challenging,14,"What are the comprehensive statistics for accounts opened in Litomerice in 1996, including client demographics, transaction activity, loan information, and quarterly distribution of account openings?",False,False,True,True,5,5,2,2,2,4,"SELECT 
+    CASE 
+        WHEN CAST(strftime('%m', a.date) AS INTEGER) BETWEEN 1 AND 3 THEN 'Q1'
+        WHEN CAST(strftime('%m', a.date) AS INTEGER) BETWEEN 4 AND 6 THEN 'Q2'
+        WHEN CAST(strftime('%m', a.date) AS INTEGER) BETWEEN 7 AND 9 THEN 'Q3'
+        ELSE 'Q4'
+    END AS quarter,
+    COUNT(DISTINCT a.account_id) AS accounts_opened,
+    COUNT(DISTINCT c.client_id) AS total_clients,
+    COUNT(DISTINCT CASE WHEN c.gender = 'F' THEN c.client_id END) AS female_clients,
+    COUNT(DISTINCT CASE WHEN c.gender = 'M' THEN c.client_id END) AS male_clients,
+    AVG(c.birth_date) AS avg_birth_date,
+    COUNT(DISTINCT t.trans_id) AS total_transactions,
+    SUM(CASE WHEN t.type = 'PRIJEM' THEN t.amount ELSE 0 END) AS total_deposits,
+    SUM(CASE WHEN t.type = 'VYDAJ' THEN t.amount ELSE 0 END) AS total_withdrawals,
+    COUNT(DISTINCT l.loan_id) AS total_loans,
+    SUM(l.amount) AS total_loan_amount,
+    AVG(l.amount) AS avg_loan_amount,
+    SUM(CASE WHEN l.status = 'A' THEN 1 ELSE 0 END) AS good_loans,
+    SUM(CASE WHEN l.status = 'B' THEN 1 ELSE 0 END) AS bad_loans
+FROM account a
+JOIN district d ON a.district_id = d.district_id
+JOIN disp dp ON a.account_id = dp.account_id
+JOIN client c ON dp.client_id = c.client_id
+LEFT JOIN trans t ON a.account_id = t.account_id
+LEFT JOIN loan l ON a.account_id = l.account_id
+WHERE d.A2 = 'Litomerice' AND a.date LIKE '1996%'
+GROUP BY quarter
+ORDER BY quarter;","SELECT 
+    c.client_id,
+    c.gender,
+    c.birth_date,
+    a.account_id,
+    a.date AS account_open_date,
+    COUNT(t.trans_id) AS total_transactions,
+    SUM(CASE WHEN t.type = 'PRIJEM' THEN t.amount ELSE 0 END) AS total_credits,
+    SUM(CASE WHEN t.type = 'VYDAJ' THEN t.amount ELSE 0 END) AS total_debits,
+    l.loan_id,
+    l.amount AS loan_amount,
+    l.status AS loan_status,
+    CASE 
+        WHEN CAST(strftime('%m', a.date) AS INTEGER) BETWEEN 1 AND 3 THEN 'Q1'
+        WHEN CAST(strftime('%m', a.date) AS INTEGER) BETWEEN 4 AND 6 THEN 'Q2'
+        WHEN CAST(strftime('%m', a.date) AS INTEGER) BETWEEN 7 AND 9 THEN 'Q3'
+        ELSE 'Q4'
+    END AS quarter_opened
+FROM account a
+JOIN district d ON a.district_id = d.district_id
+JOIN disp dp ON a.account_id = dp.account_id
+JOIN client c ON dp.client_id = c.client_id
+LEFT JOIN trans t ON a.account_id = t.account_id
+LEFT JOIN loan l ON a.account_id = l.account_id
+WHERE d.A2 = 'Litomerice'
+    AND strftime('%Y', a.date) = '1996'
+GROUP BY a.account_id, c.client_id, l.loan_id;"
+139,financial,challenging,15,"What is the demographic and financial profile of gold credit card owners with account balances averaging over 1,000, broken down by gender?",False,False,True,True,5,6,2,3,2,5,"SELECT 
+    c.gender,
+    COUNT(DISTINCT c.client_id) AS client_count,
+    AVG(t.balance) AS avg_balance
+FROM card ca
+JOIN disp d ON ca.disp_id = d.disp_id
+JOIN client c ON d.client_id = c.client_id
+JOIN account a ON d.account_id = a.account_id
+JOIN trans t ON a.account_id = t.account_id
+WHERE ca.type = 'gold'
+  AND d.type = 'OWNER'
+GROUP BY c.gender
+HAVING AVG(t.balance) > 1000;","SELECT c.gender,
+       AVG(t.balance) AS avg_balance,
+       COUNT(DISTINCT a.account_id) AS num_accounts
+FROM client c
+JOIN disp d ON c.client_id = d.client_id
+JOIN card ca ON d.disp_id = ca.disp_id
+JOIN account a ON d.account_id = a.account_id
+JOIN trans t ON a.account_id = t.account_id
+WHERE ca.type = 'gold'
+  AND d.type = 'OWNER'
+GROUP BY c.gender
+HAVING AVG(t.balance) > 1000;"
+100,financial,challenging,16,"What is the average age at account opening, total number with loans, number with successfully completed loans, and number currently in debt for female clients born before 1950 from Sokolov who own accounts? Also, what are the earliest and latest years these accounts were opened?",False,False,True,True,5,5,2,2,2,4,"SELECT 
+    AVG(CAST(strftime('%Y', a.date) AS INTEGER) - CAST(strftime('%Y', c.birth_date) AS INTEGER)) AS avg_age_at_account_opening,
+    COUNT(DISTINCT c.client_id) AS total_female_clients,
+    COUNT(DISTINCT l.loan_id) AS total_with_loans,
+    COUNT(DISTINCT CASE WHEN l.status = 'A' THEN l.loan_id END) AS successfully_completed_loans,
+    COUNT(DISTINCT CASE WHEN l.status = 'D' THEN l.loan_id END) AS currently_in_debt_loans,
+    MIN(strftime('%Y', a.date)) AS earliest_account_year,
+    MAX(strftime('%Y', a.date)) AS latest_account_year
+FROM client c
+JOIN disp d ON c.client_id = d.client_id
+JOIN account a ON d.account_id = a.account_id
+LEFT JOIN loan l ON a.account_id = l.account_id
+JOIN district di ON a.district_id = di.district_id
+WHERE c.gender = 'F'
+  AND c.birth_date < '1950-01-01'
+  AND di.A2 = 'Sokolov'
+  AND d.type = 'OWNER';","SELECT 
+    AVG(CAST(strftime('%Y', a.date) AS INTEGER) - CAST(strftime('%Y', c.birth_date) AS INTEGER)) AS avg_age_at_account_opening,
+    COUNT(DISTINCT l.loan_id) AS total_loans,
+    COUNT(DISTINCT CASE WHEN l.status = 'A' THEN l.loan_id END) AS successfully_completed_loans,
+    COUNT(DISTINCT CASE WHEN l.status = 'D' THEN l.loan_id END) AS currently_in_debt_loans,
+    MIN(strftime('%Y', a.date)) AS earliest_account_year,
+    MAX(strftime('%Y', a.date)) AS latest_account_year
+FROM client c
+JOIN disp d ON c.client_id = d.client_id
+JOIN account a ON d.account_id = a.account_id
+JOIN district di ON a.district_id = di.district_id
+LEFT JOIN loan l ON a.account_id = l.account_id
+WHERE c.gender = 'F'
+    AND c.birth_date < '1950-01-01'
+    AND di.A2 = 'Sokolov'
+    AND d.type = 'OWNER';"
+159,financial,simple,17,List all the withdrawals in cash transactions that the client with the id 3356 makes.,False,False,True,True,5,5,2,2,2,4,"SELECT trans.* 
+FROM trans 
+JOIN disp ON trans.account_id = disp.account_id 
+JOIN client ON disp.client_id = client.client_id 
+WHERE client.client_id = 3356 
+AND trans.operation = 'VYBER';","SELECT t.* 
+FROM trans t
+JOIN disp d ON t.account_id = d.account_id
+WHERE d.client_id = 3356
+  AND t.operation = 'VYBER';"
+143,financial,challenging,18,"For each account with gold credit cards, provide a comprehensive financial profile including the number of gold cards, location details, transaction history, balance statistics, loan information, and rank the accounts by their average balance.",False,False,True,True,5,5,2,2,2,4,"SELECT 
+    a.account_id,
+    COUNT(ca.card_id) AS gold_card_count,
+    d2.A2 AS district_name,
+    d2.A3 AS region,
+    COUNT(t.trans_id) AS transaction_count,
+    AVG(t.balance) AS avg_balance,
+    SUM(CASE WHEN t.type = 'PRIJEM' THEN t.amount ELSE 0 END) AS total_income,
+    SUM(CASE WHEN t.type = 'VYDAJ' THEN t.amount ELSE 0 END) AS total_expense,
+    COUNT(l.loan_id) AS loan_count,
+    SUM(CASE WHEN l.status = 'A' THEN 1 ELSE 0 END) AS good_loans,
+    SUM(CASE WHEN l.status = 'B' THEN 1 ELSE 0 END) AS bad_loans,
+    RANK() OVER (ORDER BY AVG(t.balance) DESC) AS balance_rank
+FROM card ca
+JOIN disp d ON ca.disp_id = d.disp_id
+JOIN account a ON d.account_id = a.account_id
+JOIN client c ON d.client_id = c.client_id
+JOIN district d2 ON c.district_id = d2.district_id
+LEFT JOIN trans t ON a.account_id = t.account_id
+LEFT JOIN loan l ON a.account_id = l.account_id
+WHERE ca.type = 'gold'
+GROUP BY a.account_id, d2.A2, d2.A3;","SELECT 
+    a.account_id,
+    COUNT(DISTINCT c.card_id) AS gold_card_count,
+    cl.district_id,
+    COUNT(t.trans_id) AS transaction_count,
+    AVG(t.balance) AS avg_balance,
+    SUM(CASE WHEN t.type = 'PRIJEM' THEN t.amount ELSE 0 END) AS total_income,
+    SUM(CASE WHEN t.type = 'VYDAJ' THEN t.amount ELSE 0 END) AS total_expense,
+    COUNT(l.loan_id) AS loan_count,
+    SUM(CASE WHEN l.status = 'A' THEN 1 ELSE 0 END) AS good_loans,
+    SUM(CASE WHEN l.status = 'B' THEN 1 ELSE 0 END) AS bad_loans
+FROM account a
+JOIN disp d ON a.account_id = d.account_id
+JOIN client cl ON d.client_id = cl.client_id
+JOIN card c ON d.disp_id = c.disp_id AND c.type = 'gold'
+LEFT JOIN trans t ON a.account_id = t.account_id
+LEFT JOIN loan l ON a.account_id = l.account_id
+GROUP BY a.account_id
+ORDER BY avg_balance DESC;"
+174,financial,simple,19,What year was account owner number 130 born?,False,True,True,True,5,5,2,2,2,4,"SELECT strftime('%Y', c.birth_date) AS birth_year
+FROM client c
+JOIN disp d ON c.client_id = d.client_id
+WHERE d.account_id = 130 AND d.type = 'OWNER';","SELECT c.birth_date 
+FROM client c 
+JOIN disp d ON c.client_id = d.client_id 
+WHERE d.type = 'OWNER' 
+AND d.account_id = 130;"
+188,financial,challenging,20,"For accounts with loans exceeding 24 months duration that were opened before 1997, provide comprehensive details about the account(s) with the smallest loan amount, including transaction history, card information, client demographics, and order activity.",False,False,True,True,5,5,2,2,2,4,"SELECT 
+    a.account_id,
+    a.district_id,
+    a.frequency,
+    a.date AS account_date,
+    l.loan_id,
+    l.amount AS loan_amount,
+    l.duration,
+    l.payments,
+    l.status,
+    l.date AS loan_date,
+    t.trans_id,
+    t.date AS trans_date,
+    t.type,
+    t.operation,
+    t.amount AS trans_amount,
+    t.balance,
+    t.k_symbol AS trans_k_symbol,
+    t.bank,
+    t.account AS trans_account,
+    c.card_id,
+    c.type AS card_type,
+    c.issued AS card_issued,
+    cl.client_id,
+    cl.gender,
+    cl.birth_date,
+    cl.district_id AS client_district_id,
+    o.order_id,
+    o.bank_to,
+    o.account_to,
+    o.amount AS order_amount,
+    o.k_symbol AS order_k_symbol
+FROM account a
+JOIN loan l ON a.account_id = l.account_id
+LEFT JOIN trans t ON a.account_id = t.account_id
+LEFT JOIN disp d ON a.account_id = d.account_id
+LEFT JOIN card c ON d.disp_id = c.disp_id
+LEFT JOIN client cl ON d.client_id = cl.client_id
+LEFT JOIN ""order"" o ON a.account_id = o.account_id
+WHERE l.duration > 24
+  AND a.date < '1997-01-01'
+  AND l.amount = (
+      SELECT MIN(l2.amount)
+      FROM loan l2
+      JOIN account a2 ON l2.account_id = a2.account_id
+      WHERE l2.duration > 24
+        AND a2.date < '1997-01-01'
+  );","SELECT 
+    a.account_id,
+    a.district_id,
+    a.frequency,
+    a.date AS account_open_date,
+    l.loan_id,
+    l.amount AS loan_amount,
+    l.duration,
+    l.payments,
+    l.status,
+    l.date AS loan_date,
+    t.trans_id,
+    t.date AS transaction_date,
+    t.type,
+    t.operation,
+    t.amount AS transaction_amount,
+    t.balance,
+    t.k_symbol AS transaction_k_symbol,
+    t.bank,
+    t.account AS partner_account,
+    c.card_id,
+    c.type AS card_type,
+    c.issued AS card_issued_date,
+    cl.client_id,
+    cl.gender,
+    cl.birth_date,
+    o.order_id,
+    o.bank_to,
+    o.account_to,
+    o.amount AS order_amount,
+    o.k_symbol AS order_k_symbol
+FROM account a
+JOIN loan l ON a.account_id = l.account_id
+LEFT JOIN trans t ON a.account_id = t.account_id
+LEFT JOIN disp d ON a.account_id = d.account_id
+LEFT JOIN card c ON d.disp_id = c.disp_id
+LEFT JOIN client cl ON d.client_id = cl.client_id
+LEFT JOIN ""order"" o ON a.account_id = o.account_id
+WHERE l.duration > 24
+  AND a.date < '1997-01-01'
+  AND l.amount = (
+      SELECT MIN(l2.amount)
+      FROM loan l2
+      JOIN account a2 ON l2.account_id = a2.account_id
+      WHERE l2.duration > 24
+        AND a2.date < '1997-01-01'
+  );"
+991,formula_1,simple,1,What is the full name and date of birth of Austrian drivers born between 1981 and 1991?,False,True,True,True,5,5,2,2,1,4,"SELECT forename, surname, dob FROM drivers WHERE nationality = 'Austrian' AND dob BETWEEN '1981-01-01' AND '1991-12-31';","SELECT forename || ' ' || surname AS ""Full Name"", dob AS ""Date of Birth"" FROM drivers WHERE nationality = 'Austrian' AND CAST(strftime('%Y', dob) AS INTEGER) BETWEEN 1981 AND 1991;"
+897,formula_1,moderate,2,Name the driver with the most winning. Mention his nationality and what is his maximum point scores.,True,False,True,True,3,3,1,1,2,2,"SELECT d.forename || ' ' || d.surname AS full_name, d.nationality, MAX(ds.points) AS max_points
+FROM drivers d
+JOIN driverStandings ds ON d.driverId = ds.driverId
+GROUP BY d.driverId
+ORDER BY SUM(ds.wins) DESC
+LIMIT 1;","SELECT d.forename, d.surname, d.nationality, MAX(ds.points) AS max_points
+FROM drivers d
+JOIN driverStandings ds ON d.driverId = ds.driverId
+GROUP BY d.driverId
+ORDER BY SUM(ds.wins) DESC
+LIMIT 1;"
+993,formula_1,simple,3,"Where is the Hungaroring circuit located? Also, find the country and coordinates of this circuit.",True,True,True,True,5,5,2,2,1,4,"SELECT `location`, `country`, `lat`, `lng` FROM circuits WHERE `name` = 'Hungaroring';","SELECT `location`, `country`, `lat`, `lng` FROM circuits WHERE name = 'Hungaroring';"
+979,formula_1,simple,4,What race number has the most finishers?,False,False,True,True,3,3,1,1,1,2,"SELECT r.round, COUNT(*) AS finisher_count
+FROM results res
+JOIN races r ON res.raceId = r.raceId
+WHERE res.time IS NOT NULL
+GROUP BY r.raceId
+ORDER BY finisher_count DESC
+LIMIT 1;","SELECT r.round
+FROM races r
+JOIN results res ON r.raceId = res.raceId
+WHERE res.time IS NOT NULL
+GROUP BY r.raceId
+ORDER BY COUNT(*) DESC
+LIMIT 1;"
+996,formula_1,simple,5,What is the annual average number of races held during the first 10 years of the 21st century?,True,True,True,True,5,5,2,2,2,4,"SELECT AVG(cnt) AS annual_average_races
+FROM (
+    SELECT COUNT(*) AS cnt
+    FROM races
+    WHERE date >= '2000-01-01' AND date <= '2009-12-31'
+    GROUP BY year
+) AS sub;","SELECT CAST(COUNT(*) AS REAL) / (2009 - 2000 + 1) AS annual_avg_races
+FROM races
+WHERE date >= '2000-01-01' AND date <= '2009-12-31';"
+865,formula_1,moderate,6,"For all the drivers who finished the game in race No. 592, who is the oldest?",False,False,True,True,3,3,1,1,2,2,"SELECT d.forename, d.surname, d.dob
+FROM results r
+JOIN drivers d ON r.driverId = d.driverId
+WHERE r.raceId = 592 AND r.time IS NOT NULL
+ORDER BY d.dob ASC
+LIMIT 1;","SELECT d.forename, d.surname, d.dob
+FROM results r
+JOIN drivers d ON r.driverId = d.driverId
+WHERE r.raceId = 592 AND r.time IS NOT NULL
+ORDER BY d.dob ASC
+LIMIT 1;"
+1000,formula_1,simple,7,Which racetrack hosted the most recent race? Indicate the full location.,False,False,True,True,3,3,1,1,1,2,"SELECT c.name, c.location, c.country
+FROM races r
+JOIN circuits c ON r.circuitId = c.circuitId
+ORDER BY r.date DESC
+LIMIT 1;","SELECT c.name, c.location, c.country
+FROM races r
+JOIN circuits c ON r.circuitId = c.circuitId
+ORDER BY r.date DESC
+LIMIT 1;"
+930,formula_1,simple,8,In which Formula_1 race did Lewis Hamilton rank the highest?,False,False,True,True,5,7,2,3,1,6,"SELECT r.name 
+FROM results res 
+JOIN drivers d ON res.driverId = d.driverId 
+JOIN races r ON res.raceId = r.raceId 
+WHERE d.forename = 'Lewis' AND d.surname = 'Hamilton' 
+ORDER BY res.rank ASC 
+LIMIT 1;","SELECT r.name 
+FROM races r
+JOIN results res ON r.raceId = res.raceId
+JOIN drivers d ON res.driverId = d.driverId
+WHERE d.forename = 'Lewis' AND d.surname = 'Hamilton'
+ORDER BY res.rank ASC
+LIMIT 1;"
+942,formula_1,moderate,9,What is the average fastest lap time in seconds for Lewis Hamilton in all the Formula_1 races?,True,True,True,True,5,5,2,2,2,4,"SELECT AVG(
+    CAST(SUBSTR(r.fastestLapTime, 1, INSTR(r.fastestLapTime, ':') - 1) AS REAL) * 60 +
+    CAST(SUBSTR(r.fastestLapTime, INSTR(r.fastestLapTime, ':') + 1) AS REAL)
+) AS avg_fastest_lap_seconds
+FROM results r
+JOIN drivers d ON r.driverId = d.driverId
+WHERE d.forename = 'Lewis' AND d.surname = 'Hamilton';","SELECT AVG(
+    CAST(
+        SUBSTR(r.fastestLapTime, 1, INSTR(r.fastestLapTime, ':') - 1) AS REAL
+    ) * 60 +
+    CAST(
+        SUBSTR(r.fastestLapTime, INSTR(r.fastestLapTime, ':') + 1) AS REAL
+    )
+) AS avg_fastest_lap_seconds
+FROM results r
+JOIN drivers d ON r.driverId = d.driverId
+WHERE d.forename = 'Lewis' AND d.surname = 'Hamilton'
+  AND r.fastestLapTime IS NOT NULL;"
+1012,formula_1,simple,10,What was the position of the circuits during Lewis Hamilton's fastest lap in a Formula_1 race?,False,False,True,True,5,5,2,2,2,4,"SELECT c.name, lt.position
+FROM lapTimes lt
+JOIN drivers d ON lt.driverId = d.driverId
+JOIN races r ON lt.raceId = r.raceId
+JOIN circuits c ON r.circuitId = c.circuitId
+WHERE d.forename = 'Lewis' AND d.surname = 'Hamilton'
+  AND lt.time = (
+    SELECT MIN(lt2.time)
+    FROM lapTimes lt2
+    WHERE lt2.driverId = d.driverId AND lt2.raceId = lt.raceId
+  );","SELECT lt.position
+FROM lapTimes lt
+JOIN drivers d ON lt.driverId = d.driverId
+WHERE d.forename = 'Lewis' AND d.surname = 'Hamilton'
+ORDER BY lt.milliseconds ASC
+LIMIT 1;"
+956,formula_1,simple,11,Which drivers born after 1975 have been ranked 2? Please give their forenames and surnames.,False,False,True,True,5,5,2,2,2,4,"SELECT d.forename, d.surname
+FROM drivers d
+JOIN driverStandings ds ON d.driverId = ds.driverId
+WHERE ds.position = 2 AND d.dob > '1975-12-31';","SELECT DISTINCT d.forename, d.surname
+FROM drivers d
+JOIN driverStandings ds ON d.driverId = ds.driverId
+WHERE ds.position = 2
+  AND d.dob > '1975-12-31';"
+986,formula_1,simple,12,In which race did the fastest 1st lap time was recorded? Please indicate the time in milliseconds.,False,False,True,True,3,3,1,1,1,2,"SELECT r.name, MIN(lt.milliseconds) AS fastest_lap_time_ms
+FROM lapTimes lt
+JOIN races r ON lt.raceId = r.raceId
+WHERE lt.lap = 1
+GROUP BY r.raceId
+ORDER BY fastest_lap_time_ms ASC
+LIMIT 1;","SELECT r.name, lt.milliseconds
+FROM lapTimes lt
+JOIN races r ON lt.raceId = r.raceId
+WHERE lt.lap = 1
+ORDER BY lt.milliseconds ASC
+LIMIT 1;"
+880,formula_1,challenging,13,"Paul di Resta was in the No. 853 race, what percent faster did he finish in the 853rd race than the next race for the fastest lap speed?",True,True,True,True,5,5,2,2,1,4,"SELECT 
+    ((CAST(r853.`fastestLapSpeed` AS REAL) - CAST(r854.`fastestLapSpeed` AS REAL)) * 100.0) / CAST(r853.`fastestLapSpeed` AS REAL) AS percent_faster
+FROM results r853
+JOIN results r854 ON r853.driverId = r854.driverId
+JOIN drivers d ON r853.driverId = d.driverId
+WHERE d.forename = 'Paul' AND d.surname = 'di Resta'
+  AND r853.raceId = 853
+  AND r854.raceId = 854;","SELECT 
+    ((CAST(r1.fastestLapSpeed AS REAL) - CAST(r2.fastestLapSpeed AS REAL)) * 100.0 / CAST(r1.fastestLapSpeed AS REAL)) AS percent_faster
+FROM results r1
+JOIN results r2 ON r1.driverId = r2.driverId
+JOIN drivers d ON r1.driverId = d.driverId
+WHERE d.forename = 'Paul' AND d.surname = 'di Resta'
+  AND r1.raceId = 853
+  AND r2.raceId = 854;"
+856,formula_1,simple,14,Please list the time of the races held on Sepang International Circuit.,False,False,True,True,5,5,2,2,2,4,"SELECT r.time 
+FROM races r 
+JOIN circuits c ON r.circuitId = c.circuitId 
+WHERE c.name = 'Sepang International Circuit';","SELECT r.time 
+FROM races r 
+JOIN circuits c ON r.circuitId = c.circuitId 
+WHERE c.name = 'Sepang International Circuit';"
+1001,formula_1,challenging,15,What is full name of the racer who ranked 1st in the 3rd qualifying race held in the Marina Bay Street Circuit in 2008?,False,False,True,True,5,7,2,3,2,6,"SELECT d.forename || ' ' || d.surname AS full_name
+FROM qualifying q
+JOIN races r ON q.raceId = r.raceId
+JOIN drivers d ON q.driverId = d.driverId
+WHERE r.name = 'Singapore Grand Prix'
+  AND r.year = 2008
+  AND q.position = 3
+ORDER BY q.q3 ASC
+LIMIT 1;","SELECT d.forename || ' ' || d.surname AS full_name
+FROM qualifying q
+JOIN races r ON q.raceId = r.raceId
+JOIN drivers d ON q.driverId = d.driverId
+JOIN circuits c ON r.circuitId = c.circuitId
+WHERE c.name = 'Marina Bay Street Circuit'
+  AND r.year = 2008
+  AND q.position = 1
+  AND q.q3 IS NOT NULL
+ORDER BY q.q3 ASC
+LIMIT 1;"
+858,formula_1,simple,16,Which country is the constructor which got 1 point in the race No. 24 from?,False,False,True,True,5,5,2,2,1,4,"SELECT c.nationality 
+FROM constructorStandings cs 
+JOIN constructors c ON cs.constructorId = c.constructorId 
+WHERE cs.raceId = 24 AND cs.points = 1;","SELECT c.nationality
+FROM constructorStandings cs
+JOIN constructors c ON cs.constructorId = c.constructorId
+WHERE cs.raceId = 24 AND cs.points = 1.0;"
+867,formula_1,simple,17,"For the driver who set the fastest lap speed in race No.933, where does he come from?",True,True,True,True,3,3,1,1,1,2,"SELECT d.nationality
+FROM results r
+JOIN drivers d ON r.driverId = d.driverId
+WHERE r.raceId = 933
+ORDER BY r.fastestLapSpeed DESC
+LIMIT 1;","SELECT d.nationality
+FROM results r
+JOIN drivers d ON r.driverId = d.driverId
+WHERE r.raceId = 933
+  AND r.fastestLapSpeed = (SELECT MAX(fastestLapSpeed) FROM results WHERE raceId = 933);"
+869,formula_1,moderate,18,"For the constructor which got the highest point in the race No. 9 , what is its introduction website?",True,True,True,True,5,5,2,2,1,4,"SELECT c.url
+FROM constructors c
+JOIN constructorResults cr ON c.constructorId = cr.constructorId
+WHERE cr.raceId = 9
+ORDER BY cr.points DESC
+LIMIT 1;","SELECT c.url
+FROM constructors c
+JOIN constructorResults cr ON c.constructorId = cr.constructorId
+WHERE cr.raceId = 9
+ORDER BY cr.points DESC
+LIMIT 1;"
+919,formula_1,simple,19,Which circuit did the 2009 Spanish Grand Prix use?,True,True,True,True,5,5,2,2,2,4,"SELECT c.name 
+FROM races r 
+JOIN circuits c ON r.circuitId = c.circuitId 
+WHERE r.name = 'Spanish Grand Prix' AND r.year = 2009;","SELECT c.name 
+FROM races r 
+JOIN circuits c ON r.circuitId = c.circuitId 
+WHERE r.year = 2009 AND r.name = 'Spanish Grand Prix';"
+871,formula_1,simple,20,"For the driver who had the Q2 time as 0:01:15 in race No. 347, where is he from?",False,False,True,True,5,5,2,2,1,4,"SELECT d.nationality 
+FROM qualifying q 
+JOIN drivers d ON q.driverId = d.driverId 
+WHERE q.raceId = 347 
+  AND q.q2 LIKE '%1:15%';","SELECT d.nationality 
+FROM qualifying q 
+JOIN drivers d ON q.driverId = d.driverId 
+WHERE q.raceId = 347 AND q.q2 = '0:01:15';"
+7,california_schools,simple,1,What is the phone number of the school that has the highest number of test takers with an SAT score of over 1500?,True,True,True,True,5,5,2,2,1,4,"SELECT s.Phone 
+FROM schools s 
+JOIN satscores sc ON s.CDSCode = sc.cds 
+ORDER BY sc.NumGE1500 DESC 
+LIMIT 1;","SELECT s.Phone 
+FROM schools s 
+JOIN satscores sc ON s.CDSCode = sc.cds 
+ORDER BY sc.NumGE1500 DESC 
+LIMIT 1;"
+55,california_schools,challenging,2,"What are the ratios comparing various educational metrics between schools in Colusa County and Humboldt County in California, including total number of schools, charter schools, schools with high free meal eligibility rates, average SAT scores, total students receiving free or reduced-price meals, and total enrollment?",False,False,True,True,6,6,2,2,2,4,"SELECT 
+    CAST(Colusa.total_schools AS REAL) / NULLIF(Humboldt.total_schools, 0) AS total_schools_ratio,
+    CAST(Colusa.charter_schools AS REAL) / NULLIF(Humboldt.charter_schools, 0) AS charter_schools_ratio,
+    CAST(Colusa.high_frpm_schools AS REAL) / NULLIF(Humboldt.high_frpm_schools, 0) AS high_frpm_schools_ratio,
+    CAST(Colusa.avg_sat_score AS REAL) / NULLIF(Humboldt.avg_sat_score, 0) AS avg_sat_score_ratio,
+    CAST(Colusa.total_frpm_count AS REAL) / NULLIF(Humboldt.total_frpm_count, 0) AS total_frpm_count_ratio,
+    CAST(Colusa.total_enrollment AS REAL) / NULLIF(Humboldt.total_enrollment, 0) AS total_enrollment_ratio
+FROM
+    (SELECT 
+        COUNT(DISTINCT s.CDSCode) AS total_schools,
+        SUM(CASE WHEN s.Charter = 1 THEN 1 ELSE 0 END) AS charter_schools,
+        SUM(CASE WHEN f.`Percent (%) Eligible FRPM (K-12)` > 0.5 THEN 1 ELSE 0 END) AS high_frpm_schools,
+        AVG(COALESCE(sa.AvgScrRead, 0) + COALESCE(sa.AvgScrMath, 0) + COALESCE(sa.AvgScrWrite, 0)) AS avg_sat_score,
+        SUM(COALESCE(f.`FRPM Count (K-12)`, 0)) AS total_frpm_count,
+        SUM(COALESCE(f.`Enrollment (K-12)`, 0)) AS total_enrollment
+    FROM schools s
+    LEFT JOIN satscores sa ON s.CDSCode = sa.cds
+    LEFT JOIN frpm f ON s.CDSCode = f.CDSCode
+    WHERE s.County = 'Colusa') AS Colusa,
+    (SELECT 
+        COUNT(DISTINCT s.CDSCode) AS total_schools,
+        SUM(CASE WHEN s.Charter = 1 THEN 1 ELSE 0 END) AS charter_schools,
+        SUM(CASE WHEN f.`Percent (%) Eligible FRPM (K-12)` > 0.5 THEN 1 ELSE 0 END) AS high_frpm_schools,
+        AVG(COALESCE(sa.AvgScrRead, 0) + COALESCE(sa.AvgScrMath, 0) + COALESCE(sa.AvgScrWrite, 0)) AS avg_sat_score,
+        SUM(COALESCE(f.`FRPM Count (K-12)`, 0)) AS total_frpm_count,
+        SUM(COALESCE(f.`Enrollment (K-12)`, 0)) AS total_enrollment
+    FROM schools s
+    LEFT JOIN satscores sa ON s.CDSCode = sa.cds
+    LEFT JOIN frpm f ON s.CDSCode = f.CDSCode
+    WHERE s.County = 'Humboldt') AS Humboldt;","SELECT 
+    (SELECT COUNT(*) FROM schools WHERE County = 'Colusa') * 1.0 / 
+    (SELECT COUNT(*) FROM schools WHERE County = 'Humboldt') AS school_count_ratio,
+    (SELECT COUNT(*) FROM schools WHERE County = 'Colusa' AND Charter = 1) * 1.0 / 
+    (SELECT COUNT(*) FROM schools WHERE County = 'Humboldt' AND Charter = 1) AS charter_school_ratio,
+    (SELECT COUNT(*) FROM schools s JOIN frpm f ON s.CDSCode = f.CDSCode WHERE s.County = 'Colusa' AND f.`Percent (%) Eligible FRPM (K-12)` > 0.5) * 1.0 / 
+    (SELECT COUNT(*) FROM schools s JOIN frpm f ON s.CDSCode = f.CDSCode WHERE s.County = 'Humboldt' AND f.`Percent (%) Eligible FRPM (K-12)` > 0.5) AS high_frpm_ratio,
+    (SELECT AVG(sat.AvgScrRead + sat.AvgScrMath + sat.AvgScrWrite) FROM satscores sat JOIN schools s ON sat.cds = s.CDSCode WHERE s.County = 'Colusa') * 1.0 / 
+    (SELECT AVG(sat.AvgScrRead + sat.AvgScrMath + sat.AvgScrWrite) FROM satscores sat JOIN schools s ON sat.cds = s.CDSCode WHERE s.County = 'Humboldt') AS avg_sat_ratio,
+    (SELECT SUM(f.`FRPM Count (K-12)`) FROM frpm f JOIN schools s ON f.CDSCode = s.CDSCode WHERE s.County = 'Colusa') * 1.0 / 
+    (SELECT SUM(f.`FRPM Count (K-12)`) FROM frpm f JOIN schools s ON f.CDSCode = s.CDSCode WHERE s.County = 'Humboldt') AS frpm_count_ratio,
+    (SELECT SUM(f.`Enrollment (K-12)`) FROM frpm f JOIN schools s ON f.CDSCode = s.CDSCode WHERE s.County = 'Colusa') * 1.0 / 
+    (SELECT SUM(f.`Enrollment (K-12)`) FROM frpm f JOIN schools s ON f.CDSCode = s.CDSCode WHERE s.County = 'Humboldt') AS enrollment_ratio;"
+51,california_schools,simple,3,In which mailing street address can you find the school that has the lowest average score in reading? Also give the school's name.,False,False,True,True,5,5,2,2,1,4,"SELECT s.School, s.MailStreet
+FROM schools s
+JOIN satscores sc ON s.CDSCode = sc.cds
+WHERE sc.AvgScrRead IS NOT NULL
+ORDER BY sc.AvgScrRead ASC
+LIMIT 1;","SELECT s.MailStrAbr, s.School
+FROM schools s
+JOIN satscores sc ON s.CDSCode = sc.cds
+ORDER BY sc.AvgScrRead ASC
+LIMIT 1;"
+84,california_schools,simple,4,What are the two most common first names among the school administrators? Indicate the district to which they administer.,False,False,True,True,6,6,2,2,1,4,"SELECT s.AdmFName1, s.District
+FROM schools s
+WHERE s.StatusType = 'Active'
+  AND s.AdmFName1 IS NOT NULL
+GROUP BY s.AdmFName1, s.District
+ORDER BY COUNT(*) DESC
+LIMIT 2;","SELECT s.AdmFName1, s.District, COUNT(*) AS cnt
+FROM schools s
+WHERE s.AdmFName1 IS NOT NULL AND s.AdmFName1 != ''
+GROUP BY s.AdmFName1, s.District
+ORDER BY cnt DESC
+LIMIT 2;"
+71,california_schools,simple,5,What is the district code for the School that does not offer a magnet program in the city of Fresno?,False,False,True,True,5,5,2,2,2,4,SELECT `District Code` FROM frpm WHERE `School Name` IN (SELECT `School` FROM schools WHERE `Magnet` = 0 AND `City` = 'Fresno');,"SELECT DISTINCT s.District
+FROM schools s
+WHERE s.Magnet = 0
+  AND s.City = 'Fresno';"
+33,california_schools,moderate,6,"If there are any, what are the websites address of the schools with a free meal count of 1,900-2,000 to students aged 5-17? Include the name of the school.",False,False,True,True,4,6,2,2,2,4,"SELECT s.School, s.Website
+FROM schools s
+JOIN frpm f ON s.CDSCode = f.CDSCode
+WHERE f.`Free Meal Count (Ages 5-17)` BETWEEN 1900 AND 2000;","SELECT s.School, s.Website
+FROM schools s
+JOIN frpm f ON s.CDSCode = f.CDSCode
+WHERE f.`Free Meal Count (Ages 5-17)` BETWEEN 1900 AND 2000;"
+18,california_schools,challenging,7,"What are the average SAT statistics and school characteristics for directly funded charter schools in Fresno County that have 250 or fewer test takers, including the breakdown by testing volume categories?",False,False,True,True,9,9,2,2,2,4,"SELECT 
+    CASE 
+        WHEN s.NumTstTakr < 50 THEN 'under 50 testers'
+        WHEN s.NumTstTakr BETWEEN 50 AND 100 THEN '50-100 testers'
+        WHEN s.NumTstTakr BETWEEN 101 AND 250 THEN '100-250 testers'
+    END AS testing_volume_category,
+    AVG(s.AvgScrRead) AS avg_reading_score,
+    AVG(s.AvgScrMath) AS avg_math_score,
+    AVG(s.AvgScrWrite) AS avg_writing_score,
+    AVG(s.NumGE1500) AS avg_num_ge1500,
+    AVG(s.NumTstTakr) AS avg_num_test_takers,
+    AVG(f.`Enrollment (K-12)`) AS avg_enrollment,
+    AVG(f.`Percent (%) Eligible FRPM (K-12)`) AS avg_percent_eligible_frpm
+FROM satscores s
+JOIN schools sch ON s.cds = sch.CDSCode
+JOIN frpm f ON sch.CDSCode = f.CDSCode
+WHERE sch.FundingType = 'Directly funded'
+  AND sch.County = 'Fresno'
+  AND s.NumTstTakr <= 250
+GROUP BY testing_volume_category;","SELECT 
+    CASE 
+        WHEN s.NumTstTakr < 50 THEN 'under 50 testers'
+        WHEN s.NumTstTakr BETWEEN 50 AND 100 THEN '50-100 testers'
+        WHEN s.NumTstTakr BETWEEN 101 AND 250 THEN '100-250 testers'
+    END AS testing_volume_category,
+    AVG(s.AvgScrRead) AS avg_reading_score,
+    AVG(s.AvgScrMath) AS avg_math_score,
+    AVG(s.AvgScrWrite) AS avg_writing_score,
+    AVG(s.NumGE1500 * 1.0 / s.NumTstTakr) AS avg_excellence_rate,
+    COUNT(DISTINCT s.cds) AS school_count,
+    AVG(f.`Enrollment (K-12)`) AS avg_enrollment,
+    AVG(f.`Percent (%) Eligible FRPM (K-12)`) AS avg_frpm_percent
+FROM satscores s
+JOIN schools sch ON s.cds = sch.CDSCode
+JOIN frpm f ON sch.CDSCode = f.CDSCode
+WHERE sch.County = 'Fresno'
+    AND sch.FundingType = 'Directly funded'
+    AND s.NumTstTakr <= 250
+GROUP BY testing_volume_category;"
+28,california_schools,challenging,8,"Consider the average difference between K-12 enrollment and 15-17 enrollment of schools that are locally funded, list the names and DOC type of schools which has a difference above this average.",False,False,True,True,5,5,2,2,2,4,"SELECT s.School, s.DOCType
+FROM schools s
+JOIN frpm f ON s.CDSCode = f.CDSCode
+WHERE s.FundingType = 'Locally funded'
+GROUP BY s.CDSCode, s.School, s.DOCType
+HAVING AVG(f.`Enrollment (K-12)` - f.`Enrollment (Ages 5-17)`) > (
+    SELECT AVG(diff)
+    FROM (
+        SELECT AVG(f2.`Enrollment (K-12)` - f2.`Enrollment (Ages 5-17)`) AS diff
+        FROM schools s2
+        JOIN frpm f2 ON s2.CDSCode = f2.CDSCode
+        WHERE s2.FundingType = 'Locally funded'
+        GROUP BY s2.CDSCode
+    )
+);","SELECT s.School, s.DOCType
+FROM schools s
+JOIN frpm f ON s.CDSCode = f.CDSCode
+WHERE s.FundingType = 'Locally funded'
+  AND (f.`Enrollment (K-12)` - f.`Enrollment (Ages 5-17)`) > (
+    SELECT AVG(f2.`Enrollment (K-12)` - f2.`Enrollment (Ages 5-17)`)
+    FROM frpm f2
+    JOIN schools s2 ON f2.CDSCode = s2.CDSCode
+    WHERE s2.FundingType = 'Locally funded'
+  );"
+8,california_schools,challenging,9,"For the top 10 schools with the highest number of students eligible for free or reduced price meals, provide detailed information including their location, type, FRPM statistics, and SAT performance metrics.",False,False,True,True,5,8,2,3,2,6,"SELECT 
+    s.School,
+    s.City,
+    s.County,
+    s.Street,
+    fr.`School Type`,
+    fr.`FRPM Count (K-12)`,
+    fr.`Percent (%) Eligible FRPM (K-12)`,
+    sat.NumTstTakr,
+    sat.AvgScrRead,
+    sat.AvgScrMath,
+    sat.AvgScrWrite,
+    sat.NumGE1500
+FROM frpm fr
+JOIN schools s ON fr.CDSCode = s.CDSCode
+JOIN satscores sat ON sat.cds = s.CDSCode
+WHERE fr.`FRPM Count (K-12)` IS NOT NULL
+ORDER BY fr.`FRPM Count (K-12)` DESC
+LIMIT 10;","SELECT 
+    s.School,
+    s.City,
+    s.County,
+    s.SOCType,
+    f.`FRPM Count (K-12)`,
+    f.`Percent (%) Eligible FRPM (K-12)`,
+    f.`Enrollment (K-12)`,
+    sat.NumTstTakr,
+    sat.AvgScrRead,
+    sat.AvgScrMath,
+    sat.AvgScrWrite,
+    sat.NumGE1500,
+    (CAST(sat.NumGE1500 AS REAL) / sat.NumTstTakr) AS ExcellenceRate
+FROM schools s
+JOIN frpm f ON s.CDSCode = f.CDSCode
+JOIN satscores sat ON s.CDSCode = sat.cds
+ORDER BY f.`FRPM Count (K-12)` DESC
+LIMIT 10;"
+76,california_schools,moderate,10,What is the city location of the high school level school with Lunch Provision 2 whose lowest grade is 9 and the highest grade is 12 in the county of Merced?,False,False,True,True,6,10,2,2,2,4,"SELECT s.City
+FROM schools s
+JOIN frpm f ON s.CDSCode = f.CDSCode
+WHERE s.EILCode = 'HS'
+  AND f.""NSLP Provision Status"" = 'Breakfast Provision 2'
+  AND f.""Low Grade"" = '9'
+  AND f.""High Grade"" = '12'
+  AND s.County = 'Merced';","SELECT s.City
+FROM schools s
+JOIN frpm f ON s.CDSCode = f.CDSCode
+WHERE s.EILCode = 'HS'
+  AND f.`NSLP Provision Status` = 'Provision 2'
+  AND f.`Low Grade` = '9'
+  AND f.`High Grade` = '12'
+  AND s.County = 'Merced';"
+10,california_schools,challenging,11,"For the school with the highest average SAT Reading score among schools with more than 10 test takers, provide comprehensive details including its location, test scores across all sections, poverty indicators, enrollment, and charter status.",False,False,True,True,5,5,2,2,2,4,"SELECT s.School, s.Street, s.City, s.State, s.Zip, sc.AvgScrRead, sc.AvgScrMath, sc.AvgScrWrite, sc.NumTstTakr, sc.NumGE1500, f.`Percent (%) Eligible FRPM (K-12)`, f.`Enrollment (K-12)`, s.Charter FROM satscores sc JOIN schools s ON sc.cds = s.CDSCode JOIN frpm f ON s.CDSCode = f.CDSCode WHERE sc.NumTstTakr > 10 ORDER BY sc.AvgScrRead DESC LIMIT 1;","SELECT s.CDSCode, s.Street, s.City, s.State, s.Zip, 
+       sa.AvgScrRead, sa.AvgScrMath, sa.AvgScrWrite, sa.NumTstTakr, sa.NumGE1500,
+       f.`Enrollment (K-12)`, f.`Percent (%) Eligible FRPM (K-12)`, f.`Free Meal Count (K-12)`, f.`FRPM Count (K-12)`,
+       s.Charter
+FROM satscores sa
+JOIN schools s ON sa.cds = s.CDSCode
+LEFT JOIN frpm f ON s.CDSCode = f.CDSCode
+WHERE sa.NumTstTakr > 10
+ORDER BY sa.AvgScrRead DESC
+LIMIT 1;"
+50,california_schools,simple,12,What is the postal street address for the school with the 7th highest Math average? Indicate the school's name.,False,False,True,True,5,7,2,2,2,4,"SELECT s.sname, sc.Street
+FROM satscores s
+JOIN schools sc ON s.cds = sc.CDSCode
+WHERE s.AvgScrMath IS NOT NULL
+ORDER BY s.AvgScrMath DESC
+LIMIT 1 OFFSET 6;","SELECT s.StreetAbr, s.School
+FROM schools s
+JOIN satscores sc ON s.CDSCode = sc.cds
+ORDER BY sc.AvgScrMath DESC
+LIMIT 1 OFFSET 6;"
+65,california_schools,moderate,13,What is the ratio in percentage of Santa Clara County charter schools that are locally funded compared to charter schools with all other types of funding?,False,False,True,True,6,8,2,2,2,4,"SELECT 
+    (CAST(SUM(CASE WHEN s.FundingType = 'Locally funded' THEN 1 ELSE 0 END) AS REAL) / 
+     CAST(SUM(CASE WHEN s.FundingType != 'Locally funded' THEN 1 ELSE 0 END) AS REAL)) * 100.0 AS ratio_percentage
+FROM schools s
+JOIN frpm f ON s.CDSCode = f.CDSCode
+WHERE s.County = 'Santa Clara'
+  AND s.Charter = 1
+  AND f.""Academic Year"" = '2014-2015';","SELECT 
+    ROUND(
+        CAST(SUM(CASE WHEN s.FundingType = 'Locally funded' THEN 1 ELSE 0 END) AS REAL) * 100.0 /
+        NULLIF(SUM(CASE WHEN s.FundingType != 'Locally funded' THEN 1 ELSE 0 END), 0),
+        2
+    ) AS ratio_percentage
+FROM schools s
+WHERE s.County = 'Santa Clara'
+  AND s.Charter = 1;"
+46,california_schools,simple,14,Which state special schools have the highest number of enrollees from grades 1 through 12?,False,False,True,True,3,3,1,1,2,2,"SELECT s.School, f.`Enrollment (K-12)` 
+FROM schools s 
+JOIN frpm f ON s.CDSCode = f.CDSCode 
+WHERE s.DOC = '31' 
+  AND f.`Low Grade` <= '1' 
+  AND f.`High Grade` >= '12' 
+ORDER BY f.`Enrollment (K-12)` DESC 
+LIMIT 1;","SELECT s.`School`, f.`Enrollment (K-12)`
+FROM schools s
+JOIN frpm f ON s.`CDSCode` = f.`CDSCode`
+WHERE s.`DOC` = '31'
+ORDER BY f.`Enrollment (K-12)` DESC;"
+48,california_schools,moderate,15,What is the ratio of merged Unified School District schools to merged Elementary School District schools in Orange County?,True,True,True,True,6,6,2,2,2,4,"SELECT 
+    CAST(SUM(CASE WHEN s.DOC = '54' THEN 1 ELSE 0 END) AS REAL) / 
+    NULLIF(SUM(CASE WHEN s.DOC = '52' THEN 1 ELSE 0 END), 0) AS ratio
+FROM schools s
+WHERE s.County = 'Orange' 
+  AND s.StatusType = 'Merged'
+  AND s.DOC IN ('52', '54');","SELECT 
+    CAST(SUM(CASE WHEN s.DOC = '54' THEN 1 ELSE 0 END) AS REAL) / 
+    NULLIF(SUM(CASE WHEN s.DOC = '52' THEN 1 ELSE 0 END), 0) AS ratio
+FROM schools s
+WHERE s.County = 'Orange' 
+  AND s.StatusType = 'Merged';"
+30,california_schools,simple,16,Which cities have the top 5 lowest enrollment number for students in grades 1 through 12?,False,False,True,True,5,5,2,2,2,4,"SELECT s.City 
+FROM schools s 
+JOIN frpm f ON s.CDSCode = f.CDSCode 
+WHERE f.""Academic Year"" = '2014-2015' 
+ORDER BY f.""Enrollment (K-12)"" ASC 
+LIMIT 5;","SELECT s.City, f.`Enrollment (K-12)` 
+FROM schools s 
+JOIN frpm f ON s.CDSCode = f.CDSCode 
+WHERE f.`Enrollment (K-12)` IS NOT NULL 
+ORDER BY f.`Enrollment (K-12)` ASC 
+LIMIT 5;"
+44,california_schools,simple,17,What is the average writing score of the school who has the highest number of test takers whose total SAT sscores are greater or equal to 1500? Indicate the city to where the school is situated.,True,True,True,True,7,7,2,2,1,4,"SELECT AVG(s.AvgScrWrite) AS avg_writing_score, sc.City
+FROM satscores s
+JOIN schools sc ON s.cds = sc.CDSCode
+WHERE s.NumGE1500 = (SELECT MAX(NumGE1500) FROM satscores);","SELECT s.AvgScrWrite, sc.City
+FROM satscores s
+JOIN schools sc ON s.cds = sc.CDSCode
+WHERE s.NumGE1500 = (SELECT MAX(NumGE1500) FROM satscores)
+LIMIT 1;"
+57,california_schools,simple,18,What is the phone number and extension number for the school that had the 333rd highest average writing score?,True,False,True,True,5,5,2,2,2,4,"SELECT s.Phone, s.Ext 
+FROM schools s 
+JOIN satscores sc ON s.CDSCode = sc.cds 
+WHERE sc.rtype = 'S' 
+ORDER BY sc.AvgScrWrite DESC 
+LIMIT 1 OFFSET 332;","SELECT s.Phone, s.Ext 
+FROM schools s 
+JOIN satscores sc ON s.CDSCode = sc.cds 
+ORDER BY sc.AvgScrWrite DESC 
+LIMIT 1 OFFSET 332;"
+49,california_schools,moderate,19,Which different county has the most number of closed schools? Please provide the name of each school as well as the closure date.,False,False,True,True,5,5,2,2,2,4,"SELECT s.County, s.School, s.ClosedDate
+FROM schools s
+WHERE s.StatusType = 'Closed'
+ORDER BY s.County;","SELECT s.County, s.School, s.ClosedDate
+FROM schools s
+WHERE s.StatusType = 'Closed'
+ORDER BY s.County;"
+62,california_schools,challenging,20,"For non-chartered schools in Los Angeles County with a free meal rate below 0.18%, provide details about each school including their enrollment, free meal count, exact free meal percentage, their rank within the county, and statistics about how many schools in the county fall into this low free meal category.",False,False,True,True,5,5,2,2,2,4,"SELECT 
+    s.School,
+    f.`Enrollment (K-12)`,
+    f.`Free Meal Count (K-12)`,
+    f.`Percent (%) Eligible Free (K-12)`,
+    RANK() OVER (ORDER BY f.`Percent (%) Eligible Free (K-12)` ASC) AS rank_within_county,
+    COUNT(*) OVER() AS total_low_free_schools
+FROM schools s
+JOIN frpm f ON s.CDSCode = f.CDSCode
+WHERE s.Charter = 0
+  AND s.County = 'Los Angeles'
+  AND f.`Percent (%) Eligible Free (K-12)` < 0.18;","SELECT 
+    s.`School`,
+    f.`Enrollment (K-12)`,
+    f.`Free Meal Count (K-12)`,
+    (f.`Free Meal Count (K-12)` * 100.0 / f.`Enrollment (K-12)`) AS `Exact Free Meal Percentage`,
+    RANK() OVER (ORDER BY (f.`Free Meal Count (K-12)` * 100.0 / f.`Enrollment (K-12)`)) AS `RankWithinCounty`,
+    COUNT(*) OVER () AS `LowFreeMealSchoolCount`
+FROM schools s
+JOIN frpm f ON s.`CDSCode` = f.`CDSCode`
+WHERE s.`Charter` = 0
+  AND s.`County` = 'Los Angeles'
+  AND (f.`Free Meal Count (K-12)` * 100.0 / f.`Enrollment (K-12)`) < 0.18;"

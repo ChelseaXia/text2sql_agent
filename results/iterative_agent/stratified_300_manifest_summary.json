@@ -1,0 +1,93 @@
+{
+  "total_sample_count": 300,
+  "by_database_count": {
+    "california_schools": 21,
+    "card_games": 30,
+    "codebase_community": 30,
+    "debit_card_specializing": 16,
+    "european_football_2": 29,
+    "financial": 25,
+    "formula_1": 30,
+    "student_club": 30,
+    "superhero": 29,
+    "thrombosis_prediction": 30,
+    "toxicology": 30
+  },
+  "by_difficulty_count": {
+    "challenging": 55,
+    "moderate": 82,
+    "simple": 163
+  },
+  "by_database_difficulty_count": {
+    "california_schools": {
+      "simple": 9,
+      "moderate": 5,
+      "challenging": 7
+    },
+    "card_games": {
+      "simple": 19,
+      "moderate": 8,
+      "challenging": 3
+    },
+    "codebase_community": {
+      "simple": 24,
+      "moderate": 3,
+      "challenging": 3
+    },
+    "debit_card_specializing": {
+      "simple": 10,
+      "moderate": 3,
+      "challenging": 3
+    },
+    "european_football_2": {
+      "simple": 15,
+      "moderate": 11,
+      "challenging": 3
+    },
+    "financial": {
+      "simple": 6,
+      "moderate": 6,
+      "challenging": 13
+    },
+    "formula_1": {
+      "simple": 20,
+      "moderate": 7,
+      "challenging": 3
+    },
+    "student_club": {
+      "simple": 19,
+      "moderate": 8,
+      "challenging": 3
+    },
+    "superhero": {
+      "simple": 18,
+      "moderate": 8,
+      "challenging": 3
+    },
+    "thrombosis_prediction": {
+      "simple": 9,
+      "moderate": 16,
+      "challenging": 5
+    },
+    "toxicology": {
+      "simple": 14,
+      "moderate": 7,
+      "challenging": 9
+    }
+  },
+  "first_10_sample_id": [
+    7,
+    30,
+    44,
+    46,
+    50,
+    51,
+    57,
+    71,
+    84,
+    33
+  ],
+  "seed": 42,
+  "target_total": 300,
+  "max_per_db": 30
+}

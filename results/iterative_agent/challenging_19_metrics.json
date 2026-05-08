@@ -1,0 +1,26 @@
+{
+  "sample_count": 19,
+  "EX": 0.0,
+  "VSR": 0.7368421052631579,
+  "finish_rate": 0.7368421052631579,
+  "avg_tool_calls": 5.052631578947368,
+  "avg_execute_calls": 2.6842105263157894,
+  "suspicious_trigger_count": 37,
+  "exploration_count": 12,
+  "repair_count": 25,
+  "by_difficulty": {
+    "challenging": {
+      "sample_count": 19,
+      "EX": 0.0,
+      "VSR": 0.7368421052631579,
+      "finish_rate": 0.7368421052631579,
+      "avg_tool_calls": 5.052631578947368,
+      "avg_execute_calls": 2.6842105263157894,
+      "suspicious_trigger_count": 37,
+      "exploration_count": 12,
+      "repair_count": 25
+    }
+  },
+  "max_steps": 5,
+  "schema_linker_mode": "hybrid"
+}

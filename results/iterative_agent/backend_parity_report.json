@@ -1,0 +1,87 @@
+{
+  "backend_pair": "local_vs_mcp",
+  "sample_count": 1,
+  "tool_call_count": 6,
+  "all_passed": true,
+  "cases": [
+    {
+      "tool": "retrieve_schema",
+      "args": {
+        "db_id": "california_schools",
+        "question": "How many schools are there?"
+      },
+      "local_hash": "e5546c70e722ddd2ff21f4287ae8365c506907d6cf2cf332b4aeea826bd8d368",
+      "mcp_hash": "e5546c70e722ddd2ff21f4287ae8365c506907d6cf2cf332b4aeea826bd8d368",
+      "exact_match": true,
+      "semantic_match": true,
+      "mismatch_reason": null,
+      "linked_schema_text_exact_match": true,
+      "linked_schema_text_local_hash": "8112437ae6fc7a1dba04d1cb2fe8900f4f10cfb6d543607945d59a2782435fae",
+      "linked_schema_text_mcp_hash": "8112437ae6fc7a1dba04d1cb2fe8900f4f10cfb6d543607945d59a2782435fae"
+    },
+    {
+      "tool": "inspect_table",
+      "args": {
+        "db_id": "california_schools",
+        "table_name": "schools"
+      },
+      "local_hash": "9115030d65651c37c2f28a1f03f379eb32101897a74a55d7fb6ac03b2e035d6b",
+      "mcp_hash": "9115030d65651c37c2f28a1f03f379eb32101897a74a55d7fb6ac03b2e035d6b",
+      "exact_match": true,
+      "semantic_match": true,
+      "mismatch_reason": null
+    },
+    {
+      "tool": "sample_rows",
+      "args": {
+        "db_id": "california_schools",
+        "table_name": "schools",
+        "limit": 3
+      },
+      "local_hash": "cde1fd63e4109f374d7beb2fc591f48662340ee9ef168237a4459a273bc9aeac",
+      "mcp_hash": "cde1fd63e4109f374d7beb2fc591f48662340ee9ef168237a4459a273bc9aeac",
+      "exact_match": true,
+      "semantic_match": true,
+      "mismatch_reason": null
+    },
+    {
+      "tool": "search_column_values",
+      "args": {
+        "db_id": "california_schools",
+        "table_name": "schools",
+        "column_name": "School",
+        "search_value": "Charter"
+      },
+      "local_hash": "709551a65e321a7cb34160b9adb3374aa6dd6a07dff90966e2d14c1e06ed3e63",
+      "mcp_hash": "709551a65e321a7cb34160b9adb3374aa6dd6a07dff90966e2d14c1e06ed3e63",
+      "exact_match": true,
+      "semantic_match": true,
+      "mismatch_reason": null
+    },
+    {
+      "tool": "execute_sql",
+      "args": {
+        "db_id": "california_schools",
+        "sql": "SELECT 1 AS one"
+      },
+      "local_hash": "556896307e23e1f7185f800031130e327afce268224e0522f40555e23caedab6",
+      "mcp_hash": "556896307e23e1f7185f800031130e327afce268224e0522f40555e23caedab6",
+      "exact_match": true,
+      "semantic_match": true,
+      "mismatch_reason": null
+    },
+    {
+      "tool": "execute_sql",
+      "args": {
+        "db_id": "california_schools",
+        "sql": "DROP TABLE schools"
+      },
+      "local_hash": "871ff8e2d420c3a098cdd624d3bfda3815ee6250fafe70f14c416a4c6121e61d",
+      "mcp_hash": "871ff8e2d420c3a098cdd624d3bfda3815ee6250fafe70f14c416a4c6121e61d",
+      "exact_match": true,
+      "semantic_match": true,
+      "mismatch_reason": null,
+      "safety_guard_passed": true
+    }
+  ]
+}

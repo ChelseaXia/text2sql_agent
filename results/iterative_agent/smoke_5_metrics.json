@@ -1,0 +1,37 @@
+{
+  "sample_count": 5,
+  "EX": 0.2,
+  "VSR": 1.0,
+  "finish_rate": 1.0,
+  "avg_tool_calls": 5.0,
+  "avg_execute_calls": 2.0,
+  "suspicious_trigger_count": 5,
+  "exploration_count": 5,
+  "repair_count": 0,
+  "by_difficulty": {
+    "challenging": {
+      "sample_count": 3,
+      "EX": 0.0,
+      "VSR": 1.0,
+      "finish_rate": 1.0,
+      "avg_tool_calls": 5.0,
+      "avg_execute_calls": 2.0,
+      "suspicious_trigger_count": 3,
+      "exploration_count": 3,
+      "repair_count": 0
+    },
+    "moderate": {
+      "sample_count": 2,
+      "EX": 0.5,
+      "VSR": 1.0,
+      "finish_rate": 1.0,
+      "avg_tool_calls": 5.0,
+      "avg_execute_calls": 2.0,
+      "suspicious_trigger_count": 2,
+      "exploration_count": 2,
+      "repair_count": 0
+    }
+  },
+  "max_steps": 5,
+  "schema_linker_mode": "hybrid"
+}
